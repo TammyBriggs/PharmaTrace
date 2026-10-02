@@ -138,6 +138,11 @@ The visualization is built from real transactions on the simulated chain. It sho
 
 > Circuit diagram / PCB: **not applicable.** PharmaTrace has no hardware or IoT component.
 
+### Design Template
+| Screen | Preview |
+|---|---|
+| Design Template | ![Design Template](docs/designs/dashboard/08-template.png) |
+
 ### Mobile app (patients and pharmacists)
 
 | Screen | Preview |
@@ -162,7 +167,7 @@ The visualization is built from real transactions on the simulated chain. It sho
 | Scan analytics | ![Analytics](docs/designs/dashboard/06-analytics.png) |
 | Audit log | ![Audit log](docs/designs/dashboard/07-audit-log.png) |
 
-**Figma prototype:** [LINK TO FIGMA FILE]
+**Figma prototype:** [https://www.figma.com/design/i8k7qcRAaYYRulinorFO43/Untitled?node-id=3-1274&t=tRRItevCvoZzbsml-0]
 
 **Style guide:** white background, near-black text (`#111827`), teal (`#0F766E`) for buttons, links and icons, Inter typeface. Red and amber are used only for verification results and alerts, always with an icon and a text label.
 
