@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PharmaTrace – On-chain data</title>
+<style>
+:root{--teal:#0F766E;--tint:#F0FDFA;--ink:#111827;--mute:#4B5563;--line:#E5E7EB;--card:#F9FAFB}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.5 Inter,system-ui,sans-serif;color:var(--ink);background:#fff}
+main{max-width:1200px;margin:0 auto;padding:24px}
+h1{font-size:24px;margin:0}h2{font-size:18px;margin:0 0 12px}
+.sub{color:var(--mute);margin:4px 0 24px}
+.kpis,.grid{display:grid;gap:16px;margin-bottom:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.grid{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;overflow-x:auto}
+.kpi b{display:block;font-size:28px;color:var(--teal)}
+.legend span{display:inline-flex;align-items:center;gap:6px;margin:8px 14px 0 0;color:var(--mute)}
+.legend i{width:10px;height:10px;border-radius:50%}
+.mono{font-family:"JetBrains Mono",monospace;font-size:12px}
+table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+svg{width:100%;height:auto;display:block}
+.row{display:flex;align-items:center;gap:8px;margin:6px 0}.row .l{width:150px}.row .bar{height:14px;background:var(--teal);border-radius:4px}
+</style></head><body><main>
+<h1>PharmaTrace – on-chain activity</h1>
+<p class="sub">Every number below comes from real transactions on a local Ethereum chain running the PharmaTrace contract.</p>
+<div class="kpis" id="kpis"></div>
+<div class="card" style="margin-bottom:16px"><h2>Transaction graph</h2>
+  <div id="graph" style="max-width:640px;margin:auto"></div><div class="legend" id="glegend"></div></div>
+<div class="grid">
+  <div class="card"><h2>Transactions per day</h2><div id="days"></div>
+    <div class="legend"><span><i style="background:#0F766E"></i>All other transactions</span><span><i style="background:#B91C1C"></i>Flag transactions</span></div></div>
+  <div class="card"><h2>Batch verdicts (what a scan returns)</h2><div id="donut" style="max-width:260px;margin:auto"></div><div class="legend" id="dlegend"></div></div>
+</div>
+<div class="grid">
+  <div class="card"><h2>Transactions by type</h2><div id="types"></div></div>
+  <div class="card"><h2>Latest transactions</h2><div id="table"></div></div>
+</div>
+</main>
+<script src="chain-data.js"></script>
+<script>
+(() => {
+const D = window.CHAIN_DATA, $ = (id) => document.getElementById(id);
+if (!D) { document.body.innerHTML = '<main><h1>No data yet</h1><p>Run <code>npx hardhat run scripts/simulate.js</code>, then reload this page.</p></main>'; throw new Error("no data"); }
+const COL = { Authentic:"#0F766E", Pending:"#B45309", Flagged:"#B91C1C", Expired:"#F59E0B", ManufacturerRevoked:"#6B7280", NotFound:"#9CA3AF" };
+const txs = D.txs, bs = D.batches, short = (h) => h.slice(0, 6) + "…" + h.slice(-4);
+const count = (a, f) => a.reduce((m, x) => ((m[f(x)] = (m[f(x)] || 0) + 1), m), {});
+const vc = count(bs, (b) => b.verdict), tc = count(txs, (t) => t.type);
+const legend = (obj) => Object.keys(obj).map((k) => `<span><i style="background:${COL[k]}"></i>${k} (${obj[k]})</span>`).join("");
+
+// KPIs
+const gas = Math.round(txs.reduce((s, t) => s + t.gasUsed, 0) / txs.length);
+$("kpis").innerHTML = [["Transactions", txs.length], ["Batches", bs.length], ["Authentic", vc.Authentic || 0],
+  ["Flagged", vc.Flagged || 0], ["Avg gas / tx", gas.toLocaleString()]]
+  .map(([k, v]) => `<div class="card kpi"><b>${v}</b>${k}</div>`).join("");
+
+// Transaction graph: FDA -> manufacturers -> batches (dot colour = verdict)
+const cx = 320, cy = 300; let ang = -Math.PI / 2, k = 0, edges = "", nodes = "";
+D.manufacturers.forEach((m) => {
+  const mine = bs.filter((b) => b.manufacturer === m.label), sector = (2 * Math.PI * mine.length) / bs.length;
+  const mid = ang + sector / 2, mx = cx + 130 * Math.cos(mid), my = cy + 130 * Math.sin(mid);
+  edges += `<line x1="${cx}" y1="${cy}" x2="${mx}" y2="${my}" stroke="#0F766E" stroke-width="2"/>`;
+  mine.forEach((b, j) => {
+    const a = ang + ((j + 0.5) / mine.length) * sector, r = 240 + (k++ % 2) * 24;
+    const bx = cx + r * Math.cos(a), by = cy + r * Math.sin(a);
+    edges += `<line x1="${mx}" y1="${my}" x2="${bx}" y2="${by}" stroke="#D1D5DB"/>`;
+    nodes += `<circle cx="${bx}" cy="${by}" r="7" fill="${COL[b.verdict]}"><title>${b.no} · ${b.drug} · ${b.verdict}</title></circle>`;
+  });
+  nodes += `<circle cx="${mx}" cy="${my}" r="24" fill="#F0FDFA" stroke="#0F766E" stroke-width="2"><title>${m.label} ${m.address}</title></circle>` +
+           `<text x="${mx}" y="${my + 4}" text-anchor="middle" font-size="10" fill="#111827">${m.label.split(" ")[0]}</text>`;
+  ang += sector;
+});
+nodes += `<circle cx="${cx}" cy="${cy}" r="44" fill="#0F766E"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Rwanda FDA</text>`;
+$("graph").innerHTML = `<svg viewBox="0 0 640 600" role="img" aria-label="Transaction graph">${edges}${nodes}</svg>`;
+$("glegend").innerHTML = legend(vc);
+
+// Transactions per day (flag transactions stacked in red)
+const t0 = Math.min(...txs.map((t) => t.timestamp)), nd = Math.floor((Math.max(...txs.map((t) => t.timestamp)) - t0) / 86400) + 1;
+const pd = Array.from({ length: nd }, () => ({ o: 0, f: 0 }));
+txs.forEach((t) => pd[Math.floor((t.timestamp - t0) / 86400)][t.type === "flagBatch" ? "f" : "o"]++);
+const peak = Math.max(...pd.map((d) => d.o + d.f)), bw = 600 / nd; let bars = "";
+pd.forEach((d, i) => {
+  const ho = (d.o / peak) * 190, hf = (d.f / peak) * 190;
+  bars += `<rect x="${i * bw + 1}" y="${200 - ho}" width="${bw - 2}" height="${ho}" fill="#0F766E"/>` +
+          `<rect x="${i * bw + 1}" y="${200 - ho - hf}" width="${bw - 2}" height="${hf}" fill="#B91C1C"/>`;
+  if (i % 5 === 0) bars += `<text x="${i === 0 ? 0 : i * bw + bw / 2}" y="216" text-anchor="${i === 0 ? "start" : "middle"}" font-size="11" fill="#4B5563">Day ${i}</text>`;
+});
+$("days").innerHTML = `<svg viewBox="0 0 600 224" role="img" aria-label="Transactions per day">${bars}</svg>`;
+
+// Donut of verdicts
+const C = 2 * Math.PI * 70; let off = 0, arcs = "";
+Object.keys(vc).forEach((v) => {
+  const len = (vc[v] / bs.length) * C;
+  arcs += `<circle r="70" cx="100" cy="100" fill="none" stroke="${COL[v]}" stroke-width="28" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 100 100)"/>`;
+  off += len;
+});
+$("donut").innerHTML = `<svg viewBox="0 0 200 200">${arcs}<text x="100" y="106" text-anchor="middle" font-size="26" font-weight="700">${bs.length}</text></svg>`;
+$("dlegend").innerHTML = legend(vc);
+
+// Transactions by type + latest table
+const mxT = Math.max(...Object.values(tc));
+$("types").innerHTML = Object.entries(tc).sort((a, b) => b[1] - a[1])
+  .map(([t, n]) => `<div class="row"><span class="l">${t}</span><div class="bar" style="width:${(n / mxT) * 55}%"></div><b>${n}</b></div>`).join("");
+$("table").innerHTML = "<table><tr><th>Block</th><th>Type</th><th>Batch</th><th>Tx hash</th></tr>" +
+  txs.slice(-8).reverse().map((t) => `<tr><td>${t.block}</td><td>${t.type}</td><td>${t.batchNo || "—"}</td><td class="mono">${short(t.hash)}</td></tr>`).join("") + "</table>";
+})();
+</script></body></html>
