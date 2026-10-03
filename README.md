@@ -152,7 +152,7 @@ The visualization is built from real transactions on the simulated chain. It sho
 | Result: Authentic | ![Authentic](docs/designs/mobile/03-authentic.png) |
 | Result: Flagged | ![Flagged](docs/designs/mobile/04-flagged.png) |
 | Result: Expired / Pending / Not found | ![Other results](docs/designs/mobile/05-other-results.png) |
-| Scan history | ![History](docs/designs/mobile/06-scan-history.png) |
+| Batch history | ![History](docs/designs/mobile/06-batch-history.png) |
 | Report suspicious drug | ![Report](docs/designs/mobile/07-report.png) |
 
 ### Web dashboard (regulators and administrators)
