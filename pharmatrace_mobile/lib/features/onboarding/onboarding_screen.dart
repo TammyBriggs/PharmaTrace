@@ -42,15 +42,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Image placeholder
-                      Container(
+                      Image.asset(
+                        _onboardingData[index]["image"]!,
                         height: 250,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text('Image: ${_onboardingData[index]["image"]}'),
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 250,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 48),
