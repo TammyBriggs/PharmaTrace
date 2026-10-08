@@ -1,0 +1,38 @@
+name: pharmatrace_mobile
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Typography: The Figma specimen specifies 'Inter'
+  google_fonts: ^6.1.0
+  # Skeleton loaders: Creates the animated loading effect
+  shimmer: ^3.0.0
+
+  # cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  # Splash screen generator: Creates native splash screens for Android/iOS
+  flutter_native_splash: ^2.3.6
+  flutter_lints: ^5.0.0
+
+# Configuration for the splash screen must be at the root level
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/splash_logo.png
+  android_12:
+    image: assets/images/splash_logo.png
+    icon_background_color: "#FFFFFF"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/data/
