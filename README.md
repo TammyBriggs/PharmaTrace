@@ -173,6 +173,11 @@ The visualization is built from real transactions on the simulated chain. It sho
 
 ---
 
+## Demo Video
+https://screenrec.com/share/GpgurYR7lB
+
+---
+
 ## Deployment plan
 
 | Phase | What | Status |
