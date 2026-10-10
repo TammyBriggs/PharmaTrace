@@ -173,14 +173,17 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     final styles = _getStatusStyles(batch.verdict);
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VerificationResultScreen(batchId: batch.batchId),
-          ),
-        );
-      },
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VerificationResultScreen(
+                  batchId: batch.batchId,
+                  recordScan: false, // Prevents duplicate logging
+                ),
+              ),
+            );
+          },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),

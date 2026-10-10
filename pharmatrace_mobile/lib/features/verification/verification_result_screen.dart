@@ -7,8 +7,13 @@ import '../history/batch_history_screen.dart';
 
 class VerificationResultScreen extends StatelessWidget {
   final String batchId;
+  final bool recordScan;
 
-  const VerificationResultScreen({Key? key, required this.batchId}) : super(key: key);
+  const VerificationResultScreen({
+      Key? key,
+      required this.batchId,
+      this.recordScan = true, // Defaults to true for active scans
+    }) : super(key: key);
 
   Map<String, dynamic> _getStatusStyles(BatchVerdict verdict) {
     switch (verdict) {
@@ -31,7 +36,7 @@ class VerificationResultScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Batch Verification')),
       body: FutureBuilder<DrugBatch>(
-        future: MockDataService.verifyBatch(batchId),
+        future: MockDataService.verifyBatch(batchId, recordScan: recordScan),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Padding(

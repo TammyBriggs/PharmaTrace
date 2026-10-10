@@ -4,7 +4,7 @@ import '../models/batch_model.dart';
 import 'scan_history_manager.dart';
 
 class MockDataService {
-  static Future<DrugBatch> verifyBatch(String batchId) async {
+  static Future<DrugBatch> verifyBatch(String batchId, {bool recordScan = true}) async {
     // Artificial 1.5-second delay to trigger skeleton loaders
     await Future.delayed(const Duration(milliseconds: 1500));
 
@@ -33,8 +33,10 @@ class MockDataService {
       );
     }
 
-    // Save the scan to our dynamic history manager
-    ScanHistoryManager().addScan(fetchedBatch);
-    return fetchedBatch;
+    // Only log the scan if the flag is true
+        if (recordScan) {
+          ScanHistoryManager().addScan(fetchedBatch);
+        }
+        return fetchedBatch;
   }
 }
