@@ -1,0 +1,35 @@
+{
+  "batches": [
+    {
+      "batchId": "RW-2024-0417",
+      "drugName": "Artemether-Lumefantrine 20/120 mg",
+      "activeIngredient": "Antimalarial",
+      "manufacturerName": "Med-Lab Africa Ltd",
+      "location": "Gasabo District, Kigali",
+      "mfgDate": "2025-01-10",
+      "expiryDate": "2028-01-10",
+      "verdict": "authentic"
+    },
+    {
+      "batchId": "AMX-500-112",
+      "drugName": "Amoxicillin 500mg",
+      "activeIngredient": "Antibiotic",
+      "manufacturerName": "AfriPharm Solutions",
+      "location": "Gasabo District, Kigali",
+      "mfgDate": "2025-03-12",
+      "expiryDate": "2027-03-12",
+      "verdict": "flagged",
+      "flagReason": "Suspected falsification reported by retail pharmacy."
+    },
+    {
+      "batchId": "TLD-2024-99",
+      "drugName": "Tenofovir/Lamivudine/Dolutegravir",
+      "activeIngredient": "ARV",
+      "manufacturerName": "Rwanda Health Pharma",
+      "location": "Gasabo District, Kigali",
+      "mfgDate": "2026-05-01",
+      "expiryDate": "2028-05-01",
+      "verdict": "pending"
+    }
+  ]
+}

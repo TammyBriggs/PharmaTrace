@@ -13,6 +13,8 @@ dependencies:
   google_fonts: ^6.1.0
   # Skeleton loaders: Creates the animated loading effect
   shimmer: ^3.0.0
+  # Lightweight universal camera implementation for reading QR codes
+  mobile_scanner: ^5.0.0
 
   # cupertino_icons: ^1.0.8
 

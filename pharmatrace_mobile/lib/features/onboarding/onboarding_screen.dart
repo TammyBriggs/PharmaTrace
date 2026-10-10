@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
-/// import '../scan/scan_home_screen.dart'; // We will build this in Phase 4
+import '../scan/scan_home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -101,10 +101,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     style: ElevatedButton.styleFrom(minimumSize: const Size(120, 50)),
                     onPressed: () {
                       if (_currentPage == _onboardingData.length - 1) {
-                        // Navigate to main scanner logic (Phase 4)
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => const Scaffold(body: Center(child: Text('Scan Home Screen Pending')))),
+                          MaterialPageRoute(builder: (context) => const ScanHomeScreen()),
                         );
                       } else {
                         _pageController.nextPage(
