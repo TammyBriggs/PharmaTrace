@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/theme.dart';
 import '../verification/verification_result_screen.dart';
+import '../profile/pharmacist_profile_screen.dart';
 
 class ScanHomeScreen extends StatefulWidget {
   const ScanHomeScreen({Key? key}) : super(key: key);
@@ -34,96 +35,106 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
   }
 
   @override
-    Widget build(BuildContext context) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Scan & Verify'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.flash_on),
-              onPressed: () => _cameraController.toggleTorch(),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scan & Verify'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.flash_on),
+            onPressed: () => _cameraController.toggleTorch(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_circle, color: AppTheme.primaryColor, size: 28),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PharmacistProfileScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      // Switch from Stack to Column to guarantee visibility
+      body: Column(
+        children: [
+          // 1. Camera takes up the upper available space
+          Expanded(
+            child: MobileScanner(
+              controller: _cameraController,
+              onDetect: (capture) {
+                final List<Barcode> barcodes = capture.barcodes;
+                if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+                  _processBatch(barcodes.first.rawValue!);
+                }
+              },
             ),
-          ],
-        ),
-        // Switch from Stack to Column to guarantee visibility
-        body: Column(
-          children: [
-            // 1. Camera takes up the upper available space
-            Expanded(
-              child: MobileScanner(
-                controller: _cameraController,
-                onDetect: (capture) {
-                  final List<Barcode> barcodes = capture.barcodes;
-                  if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                    _processBatch(barcodes.first.rawValue!);
-                  }
-                },
-              ),
-            ),
+          ),
 
-            // 2. Manual entry card securely anchored at the bottom
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, -4)
-                  )
-                ]
-              ),
-              child: SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Can\'t scan the QR code?',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16
-                      ),
+          // 2. Manual entry card securely anchored at the bottom
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: Offset(0, -4)
+                )
+              ]
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Can\'t scan the QR code?',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _manualInputController,
-                            decoration: InputDecoration(
-                              hintText: 'Enter Batch ID',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: AppTheme.borderColor),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: AppTheme.borderColor),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _manualInputController,
+                          decoration: InputDecoration(
+                            hintText: 'Enter Batch ID',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.borderColor),
                             ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.borderColor),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          // Add .trim() to prevent whitespace errors from manual typing
-                          onPressed: () => _processBatch(_manualInputController.text.trim()),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(100, 50), // Ensure button matches input height
-                          ),
-                          child: const Text('Verify'),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        // Add .trim() to prevent whitespace errors from manual typing
+                        onPressed: () => _processBatch(_manualInputController.text.trim()),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(100, 50), // Ensure button matches input height
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                        child: const Text('Verify'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      );
-    }
-   }
+          ),
+        ],
+      ),
+    );
+  }
+}

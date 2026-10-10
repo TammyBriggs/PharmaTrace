@@ -21,6 +21,10 @@ class BatchHistoryScreen extends StatelessWidget {
                 final chronologicalHistory = batch.history.reversed.toList();
                 final event = chronologicalHistory[index];
                 final isLast = index == chronologicalHistory.length - 1;
+                // Convert the ISO string to a local DateTime object
+                final parsedDate = DateTime.parse(event.date).toLocal();
+                final formattedDate = "${parsedDate.day}/${parsedDate.month}/${parsedDate.year} at ${parsedDate.hour}:${parsedDate.minute.toString().padLeft(2, '0')}";
+
 
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +68,7 @@ class BatchHistoryScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Date: ${event.date}",
+                              "Date: $formattedDate",
                               style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                             ),
                             const SizedBox(height: 4),
