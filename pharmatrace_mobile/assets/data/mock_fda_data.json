@@ -8,7 +8,21 @@
       "location": "Gasabo District, Kigali",
       "mfgDate": "2025-01-10",
       "expiryDate": "2028-01-10",
-      "verdict": "authentic"
+      "verdict": "authentic",
+      "history": [
+        {
+          "action": "Batch Approved",
+          "actor": "Rwanda FDA (Regulator)",
+          "date": "2025-01-15T14:30:00Z",
+          "transactionHash": "0x8f4a...3b2c"
+        },
+        {
+          "action": "Batch Submitted",
+          "actor": "Med-Lab Africa Ltd (Manufacturer)",
+          "date": "2025-01-10T09:15:00Z",
+          "transactionHash": "0x1a2b...9c8d"
+        }
+      ]
     },
     {
       "batchId": "AMX-500-112",

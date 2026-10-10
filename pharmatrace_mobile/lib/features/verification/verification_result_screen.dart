@@ -3,6 +3,7 @@ import '../../core/theme.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../data/models/batch_model.dart';
 import '../../data/services/mock_data_service.dart';
+import '../history/batch_history_screen.dart';
 
 class VerificationResultScreen extends StatelessWidget {
   final String batchId;
@@ -18,6 +19,8 @@ class VerificationResultScreen extends StatelessWidget {
       case BatchVerdict.expired:
       case BatchVerdict.pending:
         return {'color': AppTheme.statusPending, 'bg': const Color(0xFFFFFBEB), 'icon': Icons.schedule, 'label': verdict == BatchVerdict.expired ? 'Expired' : 'Pending'};
+      case BatchVerdict.revoked:
+              return {'color': AppTheme.statusFlagged, 'bg': const Color(0xFFFEF2F2), 'icon': Icons.block, 'label': 'Revoked'};
       default:
         return {'color': AppTheme.statusNotFound, 'bg': const Color(0xFFF3F4F6), 'icon': Icons.help_outline, 'label': 'Not Found'};
     }
@@ -75,9 +78,17 @@ class VerificationResultScreen extends StatelessWidget {
                 _buildInfoRow(Icons.business_outlined, 'Manufacturer', batch.manufacturerName),
                 _buildInfoRow(Icons.location_on_outlined, 'Location', batch.location),
                 const Spacer(),
-                if (batch.verdict == BatchVerdict.authentic)
+                // Show history button for Authentic, Flagged, Pending, and Expired
+                if (batch.verdict != BatchVerdict.notFound && batch.verdict != BatchVerdict.revoked)
                   ElevatedButton(
-                    onPressed: () {}, // Future endpoint for View Batch History[cite: 7]
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BatchHistoryScreen(batch: batch),
+                        ),
+                      );
+                    },
                     child: const Text('View Batch History'),
                   ),
               ],
