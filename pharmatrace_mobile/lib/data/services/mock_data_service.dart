@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import '../models/batch_model.dart';
+import 'scan_history_manager.dart';
 
 class MockDataService {
   static Future<DrugBatch> verifyBatch(String batchId) async {
@@ -16,18 +17,24 @@ class MockDataService {
       orElse: () => null,
     );
 
+    late DrugBatch fetchedBatch;
+
     if (result != null) {
-      return DrugBatch.fromJson(result);
-    } 
-    
-    // Return a default "Not Found" state if the QR code is unregistered[cite: 3]
-    return DrugBatch(
-      batchId: batchId,
-      drugName: 'Unknown Product',
-      activeIngredient: 'N/A',
-      manufacturerName: 'Unverified Source',
-      location: 'N/A',
-      verdict: BatchVerdict.notFound,
-    );
+      fetchedBatch = DrugBatch.fromJson(result);
+    } else {
+      // Return a default "Not Found" state if the QR code is unregistered
+      fetchedBatch = DrugBatch(
+        batchId: batchId,
+        drugName: 'Unknown Product',
+        activeIngredient: 'N/A',
+        manufacturerName: 'Unverified Source',
+        location: 'N/A',
+        verdict: BatchVerdict.notFound,
+      );
+    }
+
+    // Save the scan to our dynamic history manager
+    ScanHistoryManager().addScan(fetchedBatch);
+    return fetchedBatch;
   }
 }

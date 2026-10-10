@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/theme.dart';
-import '../features/scan/scan_home_screen.dart';
-import '../features/history/scan_history_screen.dart';
+import '../core/theme.dart';
+import '../../features/scan/scan_home_screen.dart';
+import '../../features/history/scan_history_screen.dart';
 import '../features/profile/pharmacist_profile_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
