@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../data/models/batch_model.dart';
 import '../../data/services/scan_history_manager.dart';
+import '../verification/verification_result_screen.dart'; // Added import
 
 class ScanHistoryScreen extends StatefulWidget {
   const ScanHistoryScreen({Key? key}) : super(key: key);
@@ -11,7 +12,7 @@ class ScanHistoryScreen extends StatefulWidget {
 }
 
 class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
-  BatchVerdict? _selectedFilter; // null represents "All"
+  BatchVerdict? _selectedFilter;
 
   Map<String, dynamic> _getStatusStyles(BatchVerdict verdict) {
     switch (verdict) {
@@ -42,6 +43,31 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     return _getStatusStyles(verdict)['label'];
   }
 
+  void _showClearConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Scan History'),
+        content: const Text('Are you sure you want to clear your entire scan history? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.statusFlagged),
+            onPressed: () {
+              ScanHistoryManager().clearHistory();
+              setState(() {}); // Refresh UI to show empty state
+              Navigator.pop(context);
+            },
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final allScans = ScanHistoryManager().scans;
@@ -57,51 +83,65 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
-          // Filter Dropdown Bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppTheme.borderColor),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<BatchVerdict?>(
-                isExpanded: true,
-                value: _selectedFilter,
-                icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text("All results")),
-                  ...BatchVerdict.values.map((verdict) {
-                    return DropdownMenuItem(
-                      value: verdict,
-                      child: Text(_getStatusStyles(verdict)['label']),
-                    );
-                  }).toList(),
-                ],
-                onChanged: (BatchVerdict? newValue) {
-                  setState(() => _selectedFilter = newValue);
-                },
-                // Custom selected item display showing the dynamic scan count
-                selectedItemBuilder: (BuildContext context) {
-                  return [null, ...BatchVerdict.values].map((verdict) {
-                    return Row(
-                      children: [
-                        const Icon(Icons.filter_list, color: AppTheme.primaryColor, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_getFilterName(verdict)} • ${filteredScans.length} scans',
-                          style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
-                        ),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppTheme.borderColor),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<BatchVerdict?>(
+                      isExpanded: true,
+                      value: _selectedFilter,
+                      icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text("All results")),
+                        ...BatchVerdict.values.map((verdict) {
+                          return DropdownMenuItem(
+                            value: verdict,
+                            child: Text(_getStatusStyles(verdict)['label']),
+                          );
+                        }).toList(),
                       ],
-                    );
-                  }).toList();
-                },
+                      onChanged: (BatchVerdict? newValue) {
+                        setState(() => _selectedFilter = newValue);
+                      },
+                      selectedItemBuilder: (BuildContext context) {
+                        return [null, ...BatchVerdict.values].map((verdict) {
+                          return Row(
+                            children: [
+                              const Icon(Icons.filter_list, color: AppTheme.primaryColor, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${_getFilterName(verdict)} • ${filteredScans.length} scans',
+                                style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+                              ),
+                            ],
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppTheme.statusFlagged.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppTheme.statusFlagged),
+                  onPressed: allScans.isEmpty ? null : _showClearConfirmationDialog,
+                ),
+              )
+            ],
           ),
           const SizedBox(height: 24),
 
-          // Empty States or List
           if (allScans.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 40.0),
@@ -132,37 +172,47 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     final batch = record.batch;
     final styles = _getStatusStyles(batch.verdict);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppTheme.borderColor),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: styles['bg'], borderRadius: BorderRadius.circular(12)),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(styles['icon'], color: styles['color'], size: 14),
-                const SizedBox(width: 6),
-                Text(styles['label'], style: TextStyle(color: styles['color'], fontWeight: FontWeight.bold, fontSize: 12)),
-              ],
-            ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerificationResultScreen(batchId: batch.batchId),
           ),
-          const SizedBox(height: 12),
-          Text(batch.drugName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 4),
-          Text(_formatCAT(record.scanTime), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-          const SizedBox(height: 16),
-          Text(batch.batchId, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-        ],
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: AppTheme.borderColor),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: styles['bg'], borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(styles['icon'], color: styles['color'], size: 14),
+                  const SizedBox(width: 6),
+                  Text(styles['label'], style: TextStyle(color: styles['color'], fontWeight: FontWeight.bold, fontSize: 12)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(batch.drugName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text(_formatCAT(record.scanTime), style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+            const SizedBox(height: 16),
+            Text(batch.batchId, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+          ],
+        ),
       ),
     );
   }

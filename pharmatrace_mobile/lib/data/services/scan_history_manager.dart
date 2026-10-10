@@ -8,6 +8,9 @@ class ScanRecord {
 }
 
 class ScanHistoryManager {
+  void clearHistory() {
+    _scans.clear();
+  }
   // Singleton pattern to keep data alive across screens
   static final ScanHistoryManager _instance = ScanHistoryManager._internal();
   factory ScanHistoryManager() => _instance;
