@@ -170,20 +170,19 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                   ),
                 ),
                 Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.flash_off,
-                      color: AppTheme.primaryColor,
-                    ),
-                    onPressed: () =>
-                        _cameraController.toggleTorch(),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                  child: ValueListenableBuilder<TorchState>(
+                    valueListenable: _cameraController.torchState,
+                    builder: (context, state, child) {
+                      final isOn = state == TorchState.on;
+                      return IconButton(
+                        // Strikethrough removed when on, present when off
+                        icon: Icon(isOn ? Icons.flash_on : Icons.flash_off, color: AppTheme.primaryColor),
+                        onPressed: () => _cameraController.toggleTorch(),
+                      );
+                    },
                   ),
                 ),
-              ],
             ),
           ),
 

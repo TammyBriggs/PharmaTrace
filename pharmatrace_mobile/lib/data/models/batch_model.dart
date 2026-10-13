@@ -9,6 +9,8 @@ class DrugBatch {
   final BatchVerdict verdict;
   final String? flagReason;
   final List<BatchEvent> history;
+  final String serialNumber;
+  bool isDispensed; // Not final, so it can be updated locally
 
   DrugBatch({
     required this.batchId,
@@ -19,6 +21,8 @@ class DrugBatch {
     required this.verdict,
     this.flagReason,
     this.history = const [],
+    this.serialNumber = "SN-98765432101", // Default for prototype
+    this.isDispensed = false,
   });
 
   factory DrugBatch.fromJson(Map<String, dynamic> json) {

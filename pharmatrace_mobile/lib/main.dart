@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'core/theme.dart';
 import 'features/onboarding/splash_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AuthManager().init();
   runApp(const PharmaTraceApp());
 }
 

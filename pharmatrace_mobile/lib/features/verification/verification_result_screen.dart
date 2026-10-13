@@ -83,18 +83,47 @@ class VerificationResultScreen extends StatelessWidget {
                 _buildInfoRow(Icons.business_outlined, 'Manufacturer', batch.manufacturerName),
                 _buildInfoRow(Icons.location_on_outlined, 'Location', batch.location),
                 const Spacer(),
-                // Show history button for Authentic, Flagged, Pending, and Expired
-                if (batch.verdict != BatchVerdict.notFound && batch.verdict != BatchVerdict.revoked)
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BatchHistoryScreen(batch: batch),
+                // 1. Mark as Dispensed Button (Pharmacist Only)
+                    if (AuthManager().isPharmacist && batch.verdict == BatchVerdict.authentic && !batch.isDispensed)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            side: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () {
+                            setState(() => batch.isDispensed = true);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Product marked as dispensed. Future scans will flag this serial number.')),
+                            );
+                          },
+                          child: const Text('Mark as Dispensed', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
                         ),
-                      );
-                    },
-                    child: const Text('View Batch History'),
+                      ),
+
+                    // 2. View Batch History (All valid users)
+                    if (batch.verdict != BatchVerdict.notFound && batch.verdict != BatchVerdict.revoked)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => BatchHistoryScreen(batch: batch)));
+                          },
+                          child: const Text('View Batch History'),
+                        ),
+                      ),
+
+                    // 3. Red Report Button (Pharmacist Only)
+                    if (AuthManager().isPharmacist)
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.statusFlagged),
+                        onPressed: () {
+                          // Navigate to Report Product Screen
+                        },
+                        child: const Text('Report Product'),
+                      ),
                   ),
               ],
             ),
