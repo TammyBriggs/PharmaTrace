@@ -11,11 +11,8 @@ class ScanHomeScreen extends StatefulWidget {
 }
 
 class _ScanHomeScreenState extends State<ScanHomeScreen> {
-  final MobileScannerController _cameraController =
-      MobileScannerController();
-
-  final TextEditingController _manualInputController =
-      TextEditingController();
+  final MobileScannerController _cameraController = MobileScannerController();
+  final TextEditingController _manualInputController = TextEditingController();
 
   bool _isProcessing = false;
 
@@ -29,11 +26,10 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            VerificationResultScreen(batchId: batchId),
+        builder: (context) => VerificationResultScreen(batchId: batchId),
       ),
     ).then((_) {
-      if (!mounted) return;
+      if (!mounted) return; // Safely handles widget disposal!
 
       setState(() => _isProcessing = false);
       _cameraController.start();
@@ -80,16 +76,14 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: () {
-                    final batchId =
-                        _manualInputController.text.trim();
+                    final batchId = _manualInputController.text.trim();
 
                     if (batchId.isEmpty) return;
 
@@ -127,8 +121,7 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
             onDetect: (capture) {
               final List<Barcode> barcodes = capture.barcodes;
 
-              if (barcodes.isNotEmpty &&
-                  barcodes.first.rawValue != null) {
+              if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                 _processBatch(barcodes.first.rawValue!.trim());
               }
             },
@@ -176,13 +169,13 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                     builder: (context, state, child) {
                       final isOn = state == TorchState.on;
                       return IconButton(
-                        // Strikethrough removed when on, present when off
                         icon: Icon(isOn ? Icons.flash_on : Icons.flash_off, color: AppTheme.primaryColor),
                         onPressed: () => _cameraController.toggleTorch(),
                       );
                     },
                   ),
                 ),
+              ], // <-- This bracket was missing in your snippet
             ),
           ),
 
@@ -220,108 +213,108 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
           ),
 
           // Scanner Corner Brackets
-            Positioned(
-              top: 280,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: SizedBox(
-                  width: 270,
-                  height: 270,
-                  child: Stack(
-                    children: [
-                      // Top-left corner
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              top: BorderSide(
-                                color: AppTheme.primaryColor.withOpacity(0.8),
-                                width: 3,
-                              ),
-                              left: BorderSide(
-                                color: AppTheme.primaryColor.withOpacity(0.8),
-                                width: 3,
-                              ),
+          Positioned(
+            top: 280,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox(
+                width: 270,
+                height: 270,
+                child: Stack(
+                  children: [
+                    // Top-left corner
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              width: 3,
+                            ),
+                            left: BorderSide(
+                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              width: 3,
                             ),
                           ),
                         ),
                       ),
+                    ),
 
-                      // Top-right corner
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              top: BorderSide(
-                                color: AppTheme.primaryColor.withOpacity(0.8),
-                                width: 3,
-                              ),
-                              right: BorderSide(
-                                color: AppTheme.primaryColor.withOpacity(0.8),
-                                width: 3,
-                              ),
+                    // Top-right corner
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              width: 3,
+                            ),
+                            right: BorderSide(
+                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              width: 3,
                             ),
                           ),
                         ),
                       ),
+                    ),
 
-                      // Bottom-left corner
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        child: Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: AppTheme.primaryColor.withOpacity(0.8),
-                                width: 3,
-                              ),
-                              left: BorderSide(
-                                color: AppTheme.primaryColor.withOpacity(0.8),
-                                width: 3,
-                              ),
+                    // Bottom-left corner
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              width: 3,
+                            ),
+                            left: BorderSide(
+                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              width: 3,
                             ),
                           ),
                         ),
                       ),
+                    ),
 
-                      // Bottom-right corner
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: AppTheme.primaryColor.withOpacity(0.8),
-                                width: 3,
-                              ),
-                              right: BorderSide(
-                                color: AppTheme.primaryColor.withOpacity(0.8),
-                                width: 3,
-                              ),
+                    // Bottom-right corner
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              width: 3,
+                            ),
+                            right: BorderSide(
+                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              width: 3,
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
+          ),
 
           // Bottom manual entry card
           Positioned(

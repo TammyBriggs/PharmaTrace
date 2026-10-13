@@ -19,7 +19,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = [
     const ScanHomeScreen(),
     const ScanHistoryScreen(),
-    const ProfileScreen(), 
+    const ProfileScreen(),
   ];
 
   @override
