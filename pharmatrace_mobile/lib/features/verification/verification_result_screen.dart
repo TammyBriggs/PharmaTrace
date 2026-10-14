@@ -3,18 +3,24 @@ import '../../core/theme.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../data/models/batch_model.dart';
 import '../../data/services/mock_data_service.dart';
+import '../../core/auth_manager.dart';
 import '../history/batch_history_screen.dart';
 
-class VerificationResultScreen extends StatelessWidget {
+class VerificationResultScreen extends StatefulWidget {
   final String batchId;
   final bool recordScan;
 
   const VerificationResultScreen({
-      Key? key,
-      required this.batchId,
-      this.recordScan = true, // Defaults to true for active scans
-    }) : super(key: key);
+    Key? key,
+    required this.batchId,
+    this.recordScan = true,
+  }) : super(key: key);
 
+  @override
+  State<VerificationResultScreen> createState() => _VerificationResultScreenState();
+}
+
+class _VerificationResultScreenState extends State<VerificationResultScreen> {
   Map<String, dynamic> _getStatusStyles(BatchVerdict verdict) {
     switch (verdict) {
       case BatchVerdict.authentic:
@@ -25,10 +31,31 @@ class VerificationResultScreen extends StatelessWidget {
       case BatchVerdict.pending:
         return {'color': AppTheme.statusPending, 'bg': const Color(0xFFFFFBEB), 'icon': Icons.schedule, 'label': verdict == BatchVerdict.expired ? 'Expired' : 'Pending'};
       case BatchVerdict.revoked:
-              return {'color': AppTheme.statusFlagged, 'bg': const Color(0xFFFEF2F2), 'icon': Icons.block, 'label': 'Revoked'};
+        return {'color': AppTheme.statusFlagged, 'bg': const Color(0xFFFEF2F2), 'icon': Icons.block, 'label': 'Revoked'};
       default:
         return {'color': AppTheme.statusNotFound, 'bg': const Color(0xFFF3F4F6), 'icon': Icons.help_outline, 'label': 'Not Found'};
     }
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: AppTheme.textSecondary),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              const SizedBox(height: 4),
+              Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            ],
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -36,12 +63,12 @@ class VerificationResultScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Batch Verification')),
       body: FutureBuilder<DrugBatch>(
-        future: MockDataService.verifyBatch(batchId, recordScan: recordScan),
+        future: MockDataService.verifyBatch(widget.batchId, recordScan: widget.recordScan),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Padding(
               padding: EdgeInsets.all(24.0),
-              child: MedicineCardSkeleton(), // Triggers your skeleton loader logic
+              child: MedicineCardSkeleton(),
             );
           }
 
@@ -80,76 +107,73 @@ class VerificationResultScreen extends StatelessWidget {
                 Text(batch.activeIngredient, style: TextStyle(color: AppTheme.textSecondary)),
                 const SizedBox(height: 32),
                 _buildInfoRow(Icons.confirmation_number_outlined, 'Batch ID', batch.batchId),
+                _buildInfoRow(Icons.qr_code_scanner_outlined, 'Serial Number', batch.serialNumber),
                 _buildInfoRow(Icons.business_outlined, 'Manufacturer', batch.manufacturerName),
                 _buildInfoRow(Icons.location_on_outlined, 'Location', batch.location),
+                
+                // Show dispensed warning if a pharmacist previously marked it
+                if (batch.isDispensed) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(8)),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.warning, color: AppTheme.statusFlagged, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(child: Text('Warning: This exact serial number has already been marked as dispensed.', style: TextStyle(color: AppTheme.statusFlagged, fontWeight: FontWeight.bold, fontSize: 13))),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const Spacer(),
+
                 // 1. Mark as Dispensed Button (Pharmacist Only)
-                    if (AuthManager().isPharmacist && batch.verdict == BatchVerdict.authentic && !batch.isDispensed)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 50),
-                            side: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: () {
-                            setState(() => batch.isDispensed = true);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Product marked as dispensed. Future scans will flag this serial number.')),
-                            );
-                          },
-                          child: const Text('Mark as Dispensed', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
-                        ),
+                if (AuthManager().isPharmacist && batch.verdict == BatchVerdict.authentic && !batch.isDispensed)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                        side: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
+                      onPressed: () {
+                        setState(() => batch.isDispensed = true);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Product marked as dispensed. Future scans will flag this serial number.')),
+                        );
+                      },
+                      child: const Text('Mark as Dispensed', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
 
-                    // 2. View Batch History (All valid users)
-                    if (batch.verdict != BatchVerdict.notFound && batch.verdict != BatchVerdict.revoked)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => BatchHistoryScreen(batch: batch)));
-                          },
-                          child: const Text('View Batch History'),
-                        ),
-                      ),
+                // 2. View Batch History (All valid users)
+                if (batch.verdict != BatchVerdict.notFound && batch.verdict != BatchVerdict.revoked)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => BatchHistoryScreen(batch: batch)));
+                      },
+                      child: const Text('View Batch History'),
+                    ),
+                  ),
 
-                    // 3. Red Report Button (Pharmacist Only)
-                    if (AuthManager().isPharmacist)
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.statusFlagged),
-                        onPressed: () {
-                          // Navigate to Report Product Screen
-                        },
-                        child: const Text('Report Product'),
-                      ),
+                // 3. Red Report Button (Pharmacist Only)
+                if (AuthManager().isPharmacist)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.statusFlagged),
+                    onPressed: () {
+                      // Navigate to Report Product Screen
+                    },
+                    child: const Text('Report Product'),
                   ),
               ],
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: AppTheme.textSecondary),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-              const SizedBox(height: 4),
-              Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-            ],
-          )
-        ],
       ),
     );
   }

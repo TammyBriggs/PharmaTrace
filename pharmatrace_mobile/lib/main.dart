@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
+import 'core/auth_manager.dart';
 import 'features/onboarding/splash_screen.dart';
 
 void main() async {
