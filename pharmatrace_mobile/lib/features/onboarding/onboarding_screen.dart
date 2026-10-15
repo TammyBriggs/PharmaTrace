@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../scan/scan_home_screen.dart';
 import '../../core/main_navigation.dart';
+import '../auth/login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -132,13 +133,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                             ),
                             onPressed: () {
-                              // TODO: Replace with the pharmacist login screen.
-                              Navigator.pushReplacement(
+                              Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      MainNavigationScreen(),
-                                ),
+                                MaterialPageRoute(builder: (context) => const LoginScreen()),
                               );
                             },
                             child: const Text(

@@ -17,6 +17,7 @@ dependencies:
   mobile_scanner: ^5.0.0
   shared_preferences: ^2.2.2
   image_picker: ^1.0.4
+  http: ^1.6.0
 
   # cupertino_icons: ^1.0.8
 

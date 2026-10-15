@@ -3,6 +3,7 @@ import '../../core/theme.dart';
 import '../../core/auth_manager.dart';
 import '../onboarding/onboarding_screen.dart';
 import 'report_product_screen.dart';
+import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -121,11 +122,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             )
           else
             ElevatedButton(
-              onPressed: () async {
-                // Mock login flow for prototype testing
-                await AuthManager().loginAsPharmacist();
-                setState(() {}); // Refresh to show pharmacist UI
-              },
+              onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                  );
+                },
               child: const Text('Sign in as pharmacist'),
             ),
 
