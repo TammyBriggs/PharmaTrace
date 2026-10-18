@@ -30,6 +30,13 @@ const submitReport = async (req, res) => {
       ? await generatePresignedUrl(report.image_key)
       : null;
 
+    if (image_url) {
+      // ==========================================
+      // DEBUG: Print temporary presigned report URL on submit
+      // ==========================================
+      console.log('>>> [DEBUG] Generated Submit Report Image Presigned URL:', image_url);
+    }
+
     res.status(201).json({
       message: 'Report submitted successfully',
       report: {
@@ -63,6 +70,13 @@ const getReports = async (req, res) => {
         const image_url = report.image_key
           ? await generatePresignedUrl(report.image_key)
           : null;
+
+        if (image_url) {
+          // ==========================================
+          // DEBUG: Print temporary presigned report URL when fetching
+          // ==========================================
+          console.log('>>> [DEBUG] Generated Get Reports Image Presigned URL:', image_url);
+        }
 
         return {
           ...report,

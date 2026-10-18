@@ -93,6 +93,11 @@ const login = async (req, res) => {
       profilePicUrl = await generatePresignedUrl(
         user.profile_pic_key,
       );
+
+      // ==========================================
+      // DEBUG: Print temporary presigned profile URL on login
+      // ==========================================
+      console.log('>>> [DEBUG] Generated Login Profile Pic Presigned URL:', profilePicUrl);
     }
 
     res.status(200).json({
@@ -174,6 +179,11 @@ const updateProfile = async (req, res) => {
       profilePicUrl = await generatePresignedUrl(
         user.profile_pic_key,
       );
+
+      // ==========================================
+      // DEBUG: Print temporary presigned profile URL on update
+      // ==========================================
+      console.log('>>> [DEBUG] Generated Update Profile Pic Presigned URL:', profilePicUrl);
     }
 
     res.status(200).json({
