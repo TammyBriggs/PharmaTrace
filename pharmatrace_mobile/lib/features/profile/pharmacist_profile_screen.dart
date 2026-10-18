@@ -19,106 +19,17 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final bool isPharmacist = AuthManager().isPharmacist;
 
-  // Show a dialog to edit the user's profile details.
   void _showEditProfileDialog() {
-    final nameController =
-        TextEditingController(text: AuthManager().userName);
-
-    final sectorController =
-        TextEditingController(text: AuthManager().pharmacistSector);
-
-    final ImagePicker picker = ImagePicker();
-
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit Profile'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name / Account Title',
-                ),
-              ),
-              if (AuthManager().isPharmacist) ...[
-                const SizedBox(height: 16),
-                TextField(
-                  controller: sectorController,
-                  decoration: const InputDecoration(
-                    labelText: 'Pharmacy Sector',
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.photo_library),
-                label: const Text('Choose Profile Picture'),
-                onPressed: () async {
-                  try {
-                    final XFile? image = await picker.pickImage(
-                      source: ImageSource.gallery,
-                    );
-
-                    if (image != null) {
-                      await AuthManager().updateProfile(
-                        picPath: image.path,
-                      );
-
-                      if (!mounted) return;
-
-                      setState(() {});
-
-                      if (dialogContext.mounted) {
-                        Navigator.pop(dialogContext);
-                      }
-                    }
-                  } catch (e) {
-                    if (!mounted) return;
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Could not select the profile picture.',
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await AuthManager().updateProfile(
-                name: nameController.text.trim(),
-                sector: sectorController.text.trim(),
-              );
-
-              if (!mounted) return;
-
-              setState(() {});
-
-              if (dialogContext.mounted) {
-                Navigator.pop(dialogContext);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
+      builder: (_) => _EditProfileDialog(
+        onUpdated: () {
+          if (mounted) {
+            setState(() {});
+          }
+        },
       ),
-    ).then((_) {
-      nameController.dispose();
-      sectorController.dispose();
-    });
+    );
   }
 
   @override
@@ -137,8 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
-          // User Card[cite: 18]
-          // Tap the card to edit the profile.
+          // User Profile Card
           InkWell(
             onTap: _showEditProfileDialog,
             borderRadius: BorderRadius.circular(12),
@@ -224,7 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 32),
 
-          // Privacy & Consent Card[cite: 18]
+          // Privacy & Consent Card
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -379,6 +289,179 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       onTap: onTap,
+    );
+  }
+}
+
+class _EditProfileDialog extends StatefulWidget {
+  final VoidCallback onUpdated;
+
+  const _EditProfileDialog({
+    required this.onUpdated,
+  });
+
+  @override
+  State<_EditProfileDialog> createState() => _EditProfileDialogState();
+}
+
+class _EditProfileDialogState extends State<_EditProfileDialog> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _sectorController;
+
+  bool _isSaving = false;
+  bool _isPickingImage = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _nameController = TextEditingController(
+      text: AuthManager().userName,
+    );
+
+    _sectorController = TextEditingController(
+      text: AuthManager().pharmacistSector,
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _sectorController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickProfilePicture() async {
+    if (_isSaving || _isPickingImage) return;
+
+    setState(() => _isPickingImage = true);
+
+    try {
+      final image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+      );
+
+      if (image == null || !mounted) return;
+
+      await AuthManager().updateProfile(
+        picPath: image.path,
+      );
+
+      if (!mounted) return;
+
+      widget.onUpdated();
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not select the profile picture.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingImage = false);
+      }
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (_isSaving || _isPickingImage) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      await AuthManager().updateProfile(
+        name: _nameController.text.trim(),
+        sector: _sectorController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      widget.onUpdated();
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _isSaving = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not save profile: $e'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Profile'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              enabled: !_isSaving && !_isPickingImage,
+              decoration: const InputDecoration(
+                labelText: 'Name / Account Title',
+              ),
+            ),
+            if (AuthManager().isPharmacist) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _sectorController,
+                enabled: !_isSaving && !_isPickingImage,
+                decoration: const InputDecoration(
+                  labelText: 'Pharmacy Sector',
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: (_isSaving || _isPickingImage)
+                  ? null
+                  : _pickProfilePicture,
+              icon: _isPickingImage
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.photo_library),
+              label: Text(
+                _isPickingImage
+                    ? 'Selecting picture...'
+                    : 'Choose Profile Picture',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: (_isSaving || _isPickingImage)
+              ? null
+              : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: (_isSaving || _isPickingImage)
+              ? null
+              : _saveProfile,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text('Save'),
+        ),
+      ],
     );
   }
 }
