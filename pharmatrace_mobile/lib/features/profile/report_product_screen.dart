@@ -1,4 +1,3 @@
-
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -151,18 +150,13 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
     });
 
     try {
-      // The current API accepts batch ID, reason and optional image.
-      // Include the pharmacy location in the reason until the backend
-      // supports a separate location field.
-      final reason =
-          'Pharmacy location: $location\n'
-          'Notes: $notes';
 
-      await ApiService.submitReport(
-        batchId,
-        reason,
-        _imagePath,
-      );
+    await ApiService.submitReport(
+      batchId,
+      location,
+      notes,
+      _imagePath,
+    );
 
       if (!mounted) return;
 

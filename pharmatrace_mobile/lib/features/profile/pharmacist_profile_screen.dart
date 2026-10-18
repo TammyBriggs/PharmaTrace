@@ -70,16 +70,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: AuthManager().profilePicPath.isNotEmpty
-                        ? Image.file(
-                            File(AuthManager().profilePicPath),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.person_outline,
-                                color: AppTheme.primaryColor,
-                              );
-                            },
-                          )
+                        ? (AuthManager().profilePicPath.startsWith('http')
+                            ? Image.network(
+                                AuthManager().profilePicPath,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                  Icons.person_outline,
+                                  color: AppTheme.primaryColor,
+                                ),
+                              )
+                            : Image.file(
+                                File(AuthManager().profilePicPath),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(
+                                  Icons.person_outline,
+                                  color: AppTheme.primaryColor,
+                                ),
+                              ))
                         : const Icon(
                             Icons.person_outline,
                             color: AppTheme.primaryColor,
