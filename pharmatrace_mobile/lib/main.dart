@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
 import 'core/auth_manager.dart';
+import 'core/main_navigation.dart';
 import 'features/onboarding/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await AuthManager().init();
+  await ScanHistoryManager().init();
+
   runApp(const PharmaTraceApp());
 }
 
@@ -15,14 +19,19 @@ class PharmaTraceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool startAtMain =
+        AuthManager().hasCompletedOnboarding;
+
     return MaterialApp(
       title: 'PharmaTrace',
-      // Removes the debug banner in the top right corner for a cleaner UI
-      debugShowCheckedModeBanner: false, 
-      // Applies the global Figma theme we created in Phase 1
-      theme: AppTheme.lightTheme, 
-      // Sets the Welcome Screen as the initial starting point
-      home: const SplashScreen(), 
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+
+      // Returning users skip the splash/onboarding flow.
+      // New users start at the splash screen.
+      home: startAtMain
+          ? const MainNavigationScreen()
+          : const SplashScreen(),
     );
   }
 }

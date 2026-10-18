@@ -3,6 +3,7 @@ import '../../core/theme.dart';
 import '../scan/scan_home_screen.dart';
 import '../../core/main_navigation.dart';
 import '../auth/login_screen.dart';
+import '../../core/auth_manager.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -106,12 +107,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              await AuthManager().completeOnboarding();
+
+                              if (!mounted) return;
+
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      MainNavigationScreen(),
+                                  builder: (context) => const MainNavigationScreen(),
                                 ),
                               );
                             },

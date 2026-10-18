@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../data/models/batch_model.dart';
 import '../../data/services/scan_history_manager.dart';
-import '../verification/verification_result_screen.dart'; // Added import
+import '../verification/verification_result_screen.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
   const ScanHistoryScreen({Key? key}) : super(key: key);
@@ -35,7 +35,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final min = time.minute.toString().padLeft(2, '0');
     final hr = time.hour.toString().padLeft(2, '0');
-    return "${time.day} ${months[time.month - 1]} ${time.year} • $hr:$min CAT";
+    return "${time.day} ${months[time.month - 1]} ${time.year}\n$hr:$min CAT"; // Fixed string break
   }
 
   String _getFilterName(BatchVerdict? verdict) {
@@ -56,8 +56,8 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.statusFlagged),
-            onPressed: () {
-              ScanHistoryManager().clearHistory();
+            onPressed: () async {
+              await ScanHistoryManager().clearHistory();
               setState(() {}); // Refresh UI to show empty state
               Navigator.pop(context);
             },
@@ -116,7 +116,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                               const Icon(Icons.filter_list, color: AppTheme.primaryColor, size: 20),
                               const SizedBox(width: 8),
                               Text(
-                                '${_getFilterName(verdict)} • ${filteredScans.length} scans',
+                                '${_getFilterName(verdict)}\n${filteredScans.length} scans', // Fixed string break
                                 style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
                               ),
                             ],
@@ -149,7 +149,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             )
           else if (filteredScans.isEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 40.0),
+              padding: EdgeInsets.only(top: 40.0),
               child: Center(child: Text('No scans match the "${_getFilterName(_selectedFilter)}" filter.', style: const TextStyle(color: AppTheme.textSecondary))),
             )
           else
@@ -173,17 +173,17 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     final styles = _getStatusStyles(batch.verdict);
 
     return GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => VerificationResultScreen(
-                  batchId: batch.batchId,
-                  recordScan: false, // Prevents duplicate logging
-                ),
-              ),
-            );
-          },
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerificationResultScreen(
+              batchId: batch.batchId,
+              recordScan: false, // Prevents duplicate logging
+            ),
+          ),
+        );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),

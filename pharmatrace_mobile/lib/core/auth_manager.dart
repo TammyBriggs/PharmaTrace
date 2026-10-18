@@ -9,6 +9,7 @@ class AuthManager {
 
   late SharedPreferences _prefs;
   bool isPharmacist = false;
+  bool hasCompletedOnboarding = false;
   String userName = "Guest User";
   String profilePicPath = "";
   String pharmacistSector = "Remera sector";
@@ -17,20 +18,28 @@ class AuthManager {
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     isPharmacist = _prefs.getBool('isPharmacist') ?? false;
+    hasCompletedOnboarding = _prefs.getBool('hasCompletedOnboarding') ?? false;
     userName = _prefs.getString('userName') ?? (isPharmacist ? "Pharmacist Account" : "Patient Account");
     profilePicPath = _prefs.getString('profilePicPath') ?? "";
     pharmacistSector = _prefs.getString('pharmacistSector') ?? "Remera sector";
     jwtToken = _prefs.getString('jwtToken');
   }
 
+  Future<void> completeOnboarding() async {
+      hasCompletedOnboarding = true;
+      await _prefs.setBool('hasCompletedOnboarding', true);
+    }
+
   Future<void> loginAsPharmacist(String token, String name, String? sector, String? picUrl) async {
     isPharmacist = true;
+    hasCompletedOnboarding = true;
     userName = name;
     jwtToken = token;
     if (sector != null) pharmacistSector = sector;
     if (picUrl != null) profilePicPath = picUrl;
 
     await _prefs.setBool('isPharmacist', true);
+    await _prefs.setBool('hasCompletedOnboarding', true);
     await _prefs.setString('userName', name);
     await _prefs.setString('jwtToken', token);
     await _prefs.setString('pharmacistSector', pharmacistSector);

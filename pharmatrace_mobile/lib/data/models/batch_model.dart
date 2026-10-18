@@ -1,4 +1,11 @@
-enum BatchVerdict { authentic, flagged, expired, pending, revoked, notFound }
+enum BatchVerdict {
+  authentic,
+  flagged,
+  expired,
+  pending,
+  revoked,
+  notFound,
+}
 
 class DrugBatch {
   final String batchId;
@@ -10,7 +17,7 @@ class DrugBatch {
   final String? flagReason;
   final List<BatchEvent> history;
   final String serialNumber;
-  bool isDispensed; // Not final, so it can be updated locally
+  bool isDispensed; // Not final, so it can be updated locally.
 
   DrugBatch({
     required this.batchId,
@@ -21,32 +28,68 @@ class DrugBatch {
     required this.verdict,
     this.flagReason,
     this.history = const [],
-    this.serialNumber = "SN-98765432101", // Default for prototype
+    this.serialNumber = "SN-98765432101",
     this.isDispensed = false,
   });
 
+  // Reconstruct a DrugBatch from saved JSON data.
   factory DrugBatch.fromJson(Map<String, dynamic> json) {
-    var historyList = json['history'] as List? ?? [];
+    final historyList = json['history'] as List? ?? [];
+
     return DrugBatch(
-      batchId: json['batchId'] ?? '',
-      drugName: json['drugName'] ?? '',
-      activeIngredient: json['activeIngredient'] ?? '',
-      manufacturerName: json['manufacturerName'] ?? '',
-      location: json['location'] ?? '',
-      flagReason: json['flagReason'],
-      verdict: _parseVerdict(json['verdict'] ?? 'notFound'),
-      history: historyList.map((e) => BatchEvent.fromJson(e)).toList(),
+      batchId: json['batchId']?.toString() ?? '',
+      drugName: json['drugName']?.toString() ?? '',
+      activeIngredient: json['activeIngredient']?.toString() ?? '',
+      manufacturerName: json['manufacturerName']?.toString() ?? '',
+      location: json['location']?.toString() ?? '',
+      flagReason: json['flagReason']?.toString(),
+      verdict: _parseVerdict(
+        json['verdict']?.toString() ?? 'notFound',
+      ),
+      history: historyList
+          .map(
+            (event) => BatchEvent.fromJson(
+              Map<String, dynamic>.from(event as Map),
+            ),
+          )
+          .toList(),
+      serialNumber:
+          json['serialNumber']?.toString() ?? "SN-98765432101",
+      isDispensed: json['isDispensed'] as bool? ?? false,
     );
   }
 
+  // Convert a DrugBatch into JSON for local scan-history storage.
+  Map<String, dynamic> toJson() {
+    return {
+      'batchId': batchId,
+      'drugName': drugName,
+      'activeIngredient': activeIngredient,
+      'manufacturerName': manufacturerName,
+      'location': location,
+      'verdict': verdict.name,
+      'flagReason': flagReason,
+      'history': history.map((event) => event.toJson()).toList(),
+      'serialNumber': serialNumber,
+      'isDispensed': isDispensed,
+    };
+  }
+
+  // Convert a string value into its corresponding BatchVerdict.
   static BatchVerdict _parseVerdict(String verdictStr) {
     switch (verdictStr.toLowerCase()) {
-      case 'authentic': return BatchVerdict.authentic;
-      case 'flagged': return BatchVerdict.flagged;
-      case 'expired': return BatchVerdict.expired;
-      case 'pending': return BatchVerdict.pending;
-      case 'revoked': return BatchVerdict.revoked;
-      default: return BatchVerdict.notFound;
+      case 'authentic':
+        return BatchVerdict.authentic;
+      case 'flagged':
+        return BatchVerdict.flagged;
+      case 'expired':
+        return BatchVerdict.expired;
+      case 'pending':
+        return BatchVerdict.pending;
+      case 'revoked':
+        return BatchVerdict.revoked;
+      default:
+        return BatchVerdict.notFound;
     }
   }
 }
@@ -64,12 +107,23 @@ class BatchEvent {
     required this.transactionHash,
   });
 
+  // Reconstruct a BatchEvent from saved JSON data.
   factory BatchEvent.fromJson(Map<String, dynamic> json) {
     return BatchEvent(
-      action: json['action'] ?? 'Unknown Action',
-      actor: json['actor'] ?? 'Unknown Actor',
-      date: json['date'] ?? '',
-      transactionHash: json['transactionHash'] ?? '',
+      action: json['action']?.toString() ?? 'Unknown Action',
+      actor: json['actor']?.toString() ?? 'Unknown Actor',
+      date: json['date']?.toString() ?? '',
+      transactionHash: json['transactionHash']?.toString() ?? '',
     );
+  }
+
+  // Convert a BatchEvent into JSON for local scan-history storage.
+  Map<String, dynamic> toJson() {
+    return {
+      'action': action,
+      'actor': actor,
+      'date': date,
+      'transactionHash': transactionHash,
+    };
   }
 }
