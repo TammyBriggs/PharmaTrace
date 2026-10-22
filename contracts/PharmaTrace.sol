@@ -9,7 +9,6 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
  * @notice On-chain registry that lets Rwanda FDA regulators register manufacturers,
  *         approve and flag drug batches, and lets ANYONE (patients, pharmacists)
  *         verify a batch with a read-only call. No wallet is needed to verify.
- *
  * @dev    Privacy by design (Rwanda Law No. 058/2021): the chain stores only
  *         wallet addresses, timestamps, status flags and keccak256 hashes.
  *         Names, licence numbers, drug details and flag reasons stay in the
@@ -22,10 +21,10 @@ contract PharmaTrace is AccessControl, Pausable {
     bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
 
     // ───────────────────────────── Types ─────────────────────────────
-    enum BatchStatus { None, Pending, Approved, Flagged }
+    enum BatchStatus { None, Pending, Approved, Flagged, Revoked }
 
     /// What the mobile app shows after a scan (maps 1:1 to a result screen).
-    enum Verdict { NotFound, Authentic, Pending, Flagged, Expired, ManufacturerRevoked }
+    enum Verdict { NotFound, Authentic, Pending, Flagged, Expired, ManufacturerRevoked, BatchRevoked }
 
     struct Batch {
         address manufacturer;
@@ -51,6 +50,8 @@ contract PharmaTrace is AccessControl, Pausable {
     event BatchApproved(bytes32 indexed batchId, address indexed regulator);
     event BatchFlagged(bytes32 indexed batchId, address indexed regulator, bytes32 reasonHash);
     event BatchFlagResolved(bytes32 indexed batchId, address indexed regulator);
+    event BatchRevoked(bytes32 indexed batchId, address indexed regulator, bytes32 reasonHash);
+    event BatchReinstated(bytes32 indexed batchId, address indexed regulator);
 
     // ───────────────────────────── Errors ────────────────────────────
     error InvalidAddress();
@@ -125,7 +126,7 @@ contract PharmaTrace is AccessControl, Pausable {
         emit BatchSubmitted(batchId, msg.sender, metadataHash, mfgDate, expiryDate);
     }
 
-    // ─────────────────── Regulator: approve / flag / resolve ─────────
+    // ─────────────────── Regulator: approve / flag / resolve / recall ──
     function approveBatch(bytes32 batchId) external onlyRole(REGULATOR_ROLE) whenNotPaused {
         Batch storage b = _requireBatch(batchId);
         if (b.status != BatchStatus.Pending) revert InvalidBatchState(b.status);
@@ -160,6 +161,24 @@ contract PharmaTrace is AccessControl, Pausable {
         emit BatchFlagResolved(batchId, msg.sender);
     }
 
+    /// @dev Not gated by whenNotPaused, same reasoning as flagBatch: a recall can never be blocked.
+    function revokeBatch(bytes32 batchId, bytes32 reasonHash) external onlyRole(REGULATOR_ROLE) {
+        Batch storage b = _requireBatch(batchId);
+        if (b.status == BatchStatus.Revoked) revert InvalidBatchState(b.status);
+        if (reasonHash == bytes32(0)) revert InvalidInput();
+
+        b.status = BatchStatus.Revoked;
+        emit BatchRevoked(batchId, msg.sender, reasonHash);
+    }
+
+    function reinstateBatch(bytes32 batchId) external onlyRole(REGULATOR_ROLE) whenNotPaused {
+        Batch storage b = _requireBatch(batchId);
+        if (b.status != BatchStatus.Revoked) revert InvalidBatchState(b.status);
+
+        b.status = b.approvedAt == 0 ? BatchStatus.Pending : BatchStatus.Approved;
+        emit BatchReinstated(batchId, msg.sender);
+    }
+
     // ─────────────────── Public: verification (no wallet needed) ─────
     /// @notice Called by the Node API on every QR scan. Free, read-only, open to everyone.
     function verifyBatch(bytes32 batchId) external view returns (Verdict verdict, Batch memory batch) {
@@ -167,6 +186,7 @@ contract PharmaTrace is AccessControl, Pausable {
 
         if (batch.status == BatchStatus.None)    return (Verdict.NotFound, batch);
         if (batch.status == BatchStatus.Flagged) return (Verdict.Flagged, batch);
+        if (batch.status == BatchStatus.Revoked) return (Verdict.BatchRevoked, batch);
         if (!hasRole(MANUFACTURER_ROLE, batch.manufacturer)) return (Verdict.ManufacturerRevoked, batch);
         if (batch.status == BatchStatus.Pending) return (Verdict.Pending, batch);
         if (block.timestamp > batch.expiryDate)  return (Verdict.Expired, batch);
