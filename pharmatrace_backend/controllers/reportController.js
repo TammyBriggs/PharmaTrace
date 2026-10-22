@@ -25,18 +25,6 @@ const submitReport = async (req, res) => {
 
     const report = newReport.rows[0];
 
-    // Generate a temporary URL if the report includes an image.
-    const image_url = report.image_key
-      ? await generatePresignedUrl(report.image_key)
-      : null;
-
-    if (image_url) {
-      // ==========================================
-      // DEBUG: Print temporary presigned report URL on submit
-      // ==========================================
-      console.log('>>> [DEBUG] Generated Submit Report Image Presigned URL:', image_url);
-    }
-
     res.status(201).json({
       message: 'Report submitted successfully',
       report: {

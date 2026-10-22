@@ -86,20 +86,6 @@ const login = async (req, res) => {
       { expiresIn: '7d' },
     );
 
-    // Generate a temporary URL for the profile picture.
-    let profilePicUrl = null;
-
-    if (user.profile_pic_key) {
-      profilePicUrl = await generatePresignedUrl(
-        user.profile_pic_key,
-      );
-
-      // ==========================================
-      // DEBUG: Print temporary presigned profile URL on login
-      // ==========================================
-      console.log('>>> [DEBUG] Generated Login Profile Pic Presigned URL:', profilePicUrl);
-    }
-
     res.status(200).json({
       message: 'Login successful',
       token,
