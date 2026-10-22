@@ -29,7 +29,7 @@ const submitReport = async (req, res) => {
       message: 'Report submitted successfully',
       report: {
         ...report,
-        image_url,
+        image_url: image_key ? await generatePresignedUrl(image_key) : null,,
       },
     });
   } catch (error) {
@@ -50,27 +50,6 @@ const getReports = async (req, res) => {
        WHERE flagged_by = $1
        ORDER BY reported_at DESC`,
       [req.user.id],
-    );
-
-    // Generate a temporary access URL for each stored report image.
-    const reportsWithUrls = await Promise.all(
-      reports.rows.map(async (report) => {
-        const image_url = report.image_key
-          ? await generatePresignedUrl(report.image_key)
-          : null;
-
-        if (image_url) {
-          // ==========================================
-          // DEBUG: Print temporary presigned report URL when fetching
-          // ==========================================
-          console.log('>>> [DEBUG] Generated Get Reports Image Presigned URL:', image_url);
-        }
-
-        return {
-          ...report,
-          image_url,
-        };
-      }),
     );
 
     res.status(200).json(reportsWithUrls);

@@ -6,7 +6,10 @@ const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(','),
+  credentials: true,
+}));
 app.use(express.json());
 
 // Mount the authentication routes

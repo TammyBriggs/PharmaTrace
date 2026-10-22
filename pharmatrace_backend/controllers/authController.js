@@ -45,67 +45,51 @@ const register = async (req, res) => {
   }
 };
 
-const login = async (req, res) => {
+const makeLogin = (allowedRoles) => async (req, res) => {
   try {
     const { contact, password } = req.body;
+    const { rows } = await pool.query('SELECT * FROM users WHERE contact = $1', [contact]);
+    const user = rows[0];
 
-    // Find user.
-    const userResult = await pool.query(
-      'SELECT * FROM users WHERE contact = $1',
-      [contact],
-    );
-
-    if (userResult.rows.length === 0) {
-      return res.status(401).json({
-        error: 'Invalid credentials',
-      });
+    if (!user || !(await bcrypt.compare(password || '', user.password_hash))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    if (user.is_active === false) {
+      return res.status(403).json({ error: 'This account has been deactivated' });
+    }
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({ error: 'This account cannot sign in here' });
     }
 
-    const user = userResult.rows[0];
+    await pool.query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
 
-    // Verify password.
-    const validPassword = await bcrypt.compare(
-      password,
-      user.password_hash,
-    );
-
-    if (!validPassword) {
-      return res.status(401).json({
-        error: 'Invalid credentials',
-      });
-    }
-
-    // Generate JWT.
     const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-        name: user.name,
-      },
+      { id: user.id, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: '7d' },
     );
+    const profilePicUrl = user.profile_pic_key
+      ? await generatePresignedUrl(user.profile_pic_key)
+      : null;
 
     res.status(200).json({
       message: 'Login successful',
       token,
       user: {
-        id: user.id,
-        name: user.name,
-        role: user.role,
-        contact: user.contact,
-        sector: user.sector,
+        id: user.id, name: user.name, role: user.role, contact: user.contact,
+        sector: user.sector, wallet_address: user.wallet_address,
+        must_change_password: user.must_change_password,
         profile_pic_url: profilePicUrl,
       },
     });
   } catch (error) {
     console.error('Error logging in:', error.message);
-
-    res.status(500).json({
-      error: 'Server error during login',
-    });
+    res.status(500).json({ error: 'Server error during login' });
   }
 };
+
+const login = makeLogin(['pharmacist']);                                    // mobile app
+const dashboardLogin = makeLogin(['regulator', 'manufacturer', 'super_admin']); // web dashboard
 
 const updateProfile = async (req, res) => {
   try {
@@ -158,19 +142,6 @@ const updateProfile = async (req, res) => {
     }
 
     const user = updatedUserResult.rows[0];
-
-    let profilePicUrl = null;
-
-    if (user.profile_pic_key) {
-      profilePicUrl = await generatePresignedUrl(
-        user.profile_pic_key,
-      );
-
-      // ==========================================
-      // DEBUG: Print temporary presigned profile URL on update
-      // ==========================================
-      console.log('>>> [DEBUG] Generated Update Profile Pic Presigned URL:', profilePicUrl);
-    }
 
     res.status(200).json({
       message: 'Profile updated successfully',
