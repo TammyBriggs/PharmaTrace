@@ -9,6 +9,7 @@ const requireRole = require('../middleware/requireRole');
 const {
   register,
   login,
+  dashboardLogin,
   updateProfile,
 } = require('../controllers/authController');
 

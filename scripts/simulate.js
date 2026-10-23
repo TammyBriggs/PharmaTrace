@@ -10,7 +10,7 @@ const DRUGS = [
   { name: "Amoxicillin 500mg", cat: "Antibiotic" },
   { name: "Tenofovir/Lamivudine/Dolutegravir", cat: "ARV" },
 ];
-const VERDICTS = ["NotFound", "Authentic", "Pending", "Flagged", "Expired", "ManufacturerRevoked"];
+const VERDICTS = ["NotFound", "Authentic", "Pending", "Flagged", "Expired", "ManufacturerRevoked", "BatchRevoked"];
 
 // Owner of each of the 35 batches: 0 Medilab, 1 AfriCare, 2 Umurage, 3 Unlicensed (revoked later), 4 Super Admin (demo)
 const OWNER = [0,1,0,2,1,0,3,1,4,0,2,1,0,3,1,4,0,1,2,0,1,4,0,3,1,0,2,1,4,0,1,2,0,1,4];

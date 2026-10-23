@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/config.dart';
 
 class AuthManager {
   static final AuthManager _instance = AuthManager._internal();
@@ -49,7 +50,7 @@ class AuthManager {
   Future<void> updateProfile({String? name, String? picPath, String? sector}) async {
     if (isPharmacist && jwtToken != null) {
       // Sync pharmacist updates with backend
-      var request = http.MultipartRequest('PUT', Uri.parse('http://192.168.0.108:3000/api/auth/profile'));
+      var request = http.MultipartRequest('PUT', Uri.parse('${AppConfig.apiBaseUrl}/auth/profile'));
       request.headers['Authorization'] = 'Bearer $jwtToken';
       if (name != null) request.fields['name'] = name;
       if (sector != null) request.fields['sector'] = sector;

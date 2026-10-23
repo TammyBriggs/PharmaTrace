@@ -4,6 +4,7 @@ import 'core/auth_manager.dart';
 import 'core/main_navigation.dart';
 import 'features/onboarding/splash_screen.dart';
 import 'data/services/scan_history_manager.dart';
+import 'data/services/scan_history_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

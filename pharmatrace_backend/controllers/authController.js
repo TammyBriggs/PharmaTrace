@@ -1,3 +1,4 @@
+
 const pool = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -6,6 +7,13 @@ const { generatePresignedUrl } = require('../config/storage');
 const register = async (req, res) => {
   try {
     const { name, role, wallet_address, contact, password } = req.body;
+
+    // Only pharmacist accounts can be provisioned here.
+    if (role !== 'pharmacist') {
+      return res.status(400).json({
+        error: 'Only pharmacist accounts can be provisioned here',
+      });
+    }
 
     // Check if user already exists.
     const userExists = await pool.query(
@@ -48,26 +56,47 @@ const register = async (req, res) => {
 const makeLogin = (allowedRoles) => async (req, res) => {
   try {
     const { contact, password } = req.body;
-    const { rows } = await pool.query('SELECT * FROM users WHERE contact = $1', [contact]);
+
+    const { rows } = await pool.query(
+      'SELECT * FROM users WHERE contact = $1',
+      [contact],
+    );
+
     const user = rows[0];
 
     if (!user || !(await bcrypt.compare(password || '', user.password_hash))) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    if (user.is_active === false) {
-      return res.status(403).json({ error: 'This account has been deactivated' });
-    }
-    if (!allowedRoles.includes(user.role)) {
-      return res.status(403).json({ error: 'This account cannot sign in here' });
+      return res.status(401).json({
+        error: 'Invalid credentials',
+      });
     }
 
-    await pool.query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
+    if (user.is_active === false) {
+      return res.status(403).json({
+        error: 'This account has been deactivated',
+      });
+    }
+
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({
+        error: 'This account cannot sign in here',
+      });
+    }
+
+    await pool.query(
+      'UPDATE users SET last_login = NOW() WHERE id = $1',
+      [user.id],
+    );
 
     const token = jwt.sign(
-      { id: user.id, role: user.role, name: user.name },
+      {
+        id: user.id,
+        role: user.role,
+        name: user.name,
+      },
       process.env.JWT_SECRET,
       { expiresIn: '7d' },
     );
+
     const profilePicUrl = user.profile_pic_key
       ? await generatePresignedUrl(user.profile_pic_key)
       : null;
@@ -76,20 +105,34 @@ const makeLogin = (allowedRoles) => async (req, res) => {
       message: 'Login successful',
       token,
       user: {
-        id: user.id, name: user.name, role: user.role, contact: user.contact,
-        sector: user.sector, wallet_address: user.wallet_address,
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        contact: user.contact,
+        sector: user.sector,
+        wallet_address: user.wallet_address,
         must_change_password: user.must_change_password,
         profile_pic_url: profilePicUrl,
       },
     });
   } catch (error) {
     console.error('Error logging in:', error.message);
-    res.status(500).json({ error: 'Server error during login' });
+
+    res.status(500).json({
+      error: 'Server error during login',
+    });
   }
 };
 
-const login = makeLogin(['pharmacist']);                                    // mobile app
-const dashboardLogin = makeLogin(['regulator', 'manufacturer', 'super_admin']); // web dashboard
+// Mobile app: pharmacists only.
+const login = makeLogin(['pharmacist']);
+
+// Web dashboard: regulators, manufacturers, and super admins.
+const dashboardLogin = makeLogin([
+  'regulator',
+  'manufacturer',
+  'super_admin',
+]);
 
 const updateProfile = async (req, res) => {
   try {
@@ -143,6 +186,11 @@ const updateProfile = async (req, res) => {
 
     const user = updatedUserResult.rows[0];
 
+    // Generate a usable URL for the updated profile picture.
+    const profilePicUrl = user.profile_pic_key
+      ? await generatePresignedUrl(user.profile_pic_key)
+      : null;
+
     res.status(200).json({
       message: 'Profile updated successfully',
       user: {
@@ -167,5 +215,6 @@ const updateProfile = async (req, res) => {
 module.exports = {
   register,
   login,
+  dashboardLogin,
   updateProfile,
 };

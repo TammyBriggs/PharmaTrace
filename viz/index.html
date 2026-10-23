@@ -41,7 +41,7 @@ svg{width:100%;height:auto;display:block}
 (() => {
 const D = window.CHAIN_DATA, $ = (id) => document.getElementById(id);
 if (!D) { document.body.innerHTML = '<main><h1>No data yet</h1><p>Run <code>npx hardhat run scripts/simulate.js</code>, then reload this page.</p></main>'; throw new Error("no data"); }
-const COL = { Authentic:"#0F766E", Pending:"#B45309", Flagged:"#B91C1C", Expired:"#F59E0B", ManufacturerRevoked:"#6B7280", NotFound:"#9CA3AF" };
+const COL = { Authentic:"#0F766E", Pending:"#B45309", Flagged:"#B91C1C", Expired:"#F59E0B", ManufacturerRevoked:"#6B7280", BatchRevoked:"#6B7280", NotFound:"#9CA3AF" };
 const txs = D.txs, bs = D.batches, short = (h) => h.slice(0, 6) + "…" + h.slice(-4);
 const count = (a, f) => a.reduce((m, x) => ((m[f(x)] = (m[f(x)] || 0) + 1), m), {});
 const vc = count(bs, (b) => b.verdict), tc = count(txs, (t) => t.type);

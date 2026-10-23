@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/auth_manager.dart';
+import '../../core/config.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.0.108:3000/api';
+  static const String baseUrl = AppConfig.apiBaseUrl;
 
   static Future<Map<String, dynamic>> login(
     String contact,

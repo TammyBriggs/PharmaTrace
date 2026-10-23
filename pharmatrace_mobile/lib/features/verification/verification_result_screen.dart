@@ -63,7 +63,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Batch Verification')),
       body: FutureBuilder<DrugBatch>(
-        future: MockDataService.verifyBatch(widget.batchId, recordScan: widget.recordScan),
+        future: ApiService.verify(widget.batchId, recordScan: widget.recordScan),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Padding(
