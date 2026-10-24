@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+/* Design tokens read from the Figma Login frame (no Figma variables are defined,
+   so these are the raw hex values used in the file). */
+@theme {
+  --font-sans: 'Inter Variable', Inter, system-ui, sans-serif;
+  --color-brand: #0f766e;
+  --color-brand-tint: #f0fdfa;
+  --color-ink: #111827;
+  --color-mute: #4b5563;
+  --color-line: #e5e7eb;
+  --color-canvas: #f9fafb;
+  --color-danger: #b91c1c;
+  --shadow-card: 0 2px 8px 0 rgba(17, 24, 39, 0.03);
+}
+
+body { @apply bg-canvas font-sans text-ink antialiased; }
