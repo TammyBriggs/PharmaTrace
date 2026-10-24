@@ -4,6 +4,7 @@
    so these are the raw hex values used in the file). */
 @theme {
   --font-sans: 'Inter Variable', Inter, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --color-brand: #0f766e;
   --color-brand-tint: #f0fdfa;
   --color-ink: #111827;

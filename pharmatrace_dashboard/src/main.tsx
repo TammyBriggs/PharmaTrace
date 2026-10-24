@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import '@fontsource-variable/inter';
+import '@fontsource/jetbrains-mono/700.css';
 import './index.css';
 import { AuthProvider } from './auth/AuthContext';
 import App from './App';

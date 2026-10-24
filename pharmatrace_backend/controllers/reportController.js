@@ -29,7 +29,7 @@ const submitReport = async (req, res) => {
       message: 'Report submitted successfully',
       report: {
         ...report,
-        image_url: image_key ? await generatePresignedUrl(image_key) : null,,
+        image_url: image_key ? await generatePresignedUrl(image_key) : null,
       },
     });
   } catch (error) {
