@@ -7,7 +7,7 @@ export interface OverviewData {
     manufacturers: { active: number; thisMonth: number };
     batches: { approved: number; pending: number; flagged: number };
     openInvestigations: number;
-    scansToday: { total: number; sectors: number };
+    scansToday: { total: number; sectors: number; unknown: number };
   };
   scansOverTime: { total: number; points: { date: string; count: number }[] };
   verdicts: Record<VerdictKey, number> & { total: number };

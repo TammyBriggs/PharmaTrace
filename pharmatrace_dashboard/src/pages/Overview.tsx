@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, CalendarDays, ShieldCheck, type LucideIcon, Building2, Clock3, ScanLine, ShieldAlert } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, ShieldCheck, type LucideIcon, Building2, Clock3, FileSearch, ScanLine, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useApi } from '../lib/useApi';
 import type { OverviewData, VerdictKey } from '../lib/types';
 import { categoryLabel, fmtDay, num } from '../lib/format';
+import Carousel, { CARD_BASIS } from '../components/Carousel';
 import { Card, ErrorState, PageHeading, Skeleton, StatusChip } from '../components/ui';
 
 const VERDICT_COLOR: Record<VerdictKey, string> = {
@@ -87,7 +88,7 @@ function Kpi({ label, value, note, Icon, loading }: {
   label: string; value: string; note: string; Icon: LucideIcon; loading: boolean;
 }) {
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className={`flex flex-col gap-3 ${CARD_BASIS}`}>
       <div className="flex items-center justify-between text-sm text-mute">
         {label} <Icon size={20} className="text-brand" aria-hidden />
       </div>
@@ -122,16 +123,19 @@ export default function Overview() {
 
       {error ? <ErrorState message={error} onRetry={reload} /> : (
         <>
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <Carousel label="Key metrics">
             <Kpi loading={loading} Icon={Building2} label="Active manufacturers"
               value={num(k?.manufacturers.active ?? 0)} note={`${num(k?.manufacturers.thisMonth ?? 0)} registered this month`} />
             <Kpi loading={loading} Icon={Clock3} label="Approved batches"
               value={num(k?.batches.approved ?? 0)} note={`${num(k?.batches.pending ?? 0)} awaiting review`} />
             <Kpi loading={loading} Icon={ShieldAlert} label="Flagged batches"
-              value={num(k?.batches.flagged ?? 0)} note={`${num(k?.openInvestigations ?? 0)} open investigations`} />
+              value={num(k?.batches.flagged ?? 0)} note="Currently flagged on-chain" />
+              <Kpi loading={loading} Icon={FileSearch} label="Open investigations"
+              value={num(k?.openInvestigations ?? 0)} note="Pharmacist reports awaiting review" />
             <Kpi loading={loading} Icon={ScanLine} label="Scans today"
-              value={num(k?.scansToday.total ?? 0)} note={`Across ${num(k?.scansToday.sectors ?? 0)} sectors`} />
-          </div>
+              value={num(k?.scansToday.total ?? 0)}
+              note={`Across ${num(k?.scansToday.sectors ?? 0)} sectors${k && k.scansToday.unknown > 0 ? ` · ${num(k.scansToday.unknown)} unknown` : ''}`} />
+          </Carousel>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
             <Card className="flex flex-col gap-4">

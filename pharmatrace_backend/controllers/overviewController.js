@@ -27,7 +27,8 @@ const getOverview = async (req, res) => {
                          COUNT(*) FILTER (WHERE status = 'flagged')::int  AS flagged
                   FROM batches`),
       pool.query(`SELECT COUNT(*)::int AS n FROM flag_reports WHERE status IN ('open','under_review')`),
-      pool.query(`SELECT COUNT(*)::int AS total, COUNT(DISTINCT s.sector)::int AS sectors
+      pool.query(`SELECT COUNT(*)::int AS total, COUNT(DISTINCT s.sector)::int AS sectors,
+                         COUNT(*) FILTER (WHERE s.sector IS NULL)::int AS unknown
                   FROM scan_events s WHERE ${LOCAL} >= ${TODAY}`),
       pool.query(`
         WITH today AS (SELECT (NOW() AT TIME ZONE 'Africa/Kigali')::date AS d)
