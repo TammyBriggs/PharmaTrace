@@ -9,10 +9,11 @@ export function Skeleton({ className = '' }: { className?: string }) {
   return <div aria-hidden className={`animate-pulse rounded bg-line/70 ${className}`} />;
 }
 
-export type ChipKind = 'authentic' | 'flagged' | 'expired' | 'pending' | 'revoked' | 'not_found' | 'duplicate';
+export type ChipKind = 'approved' | 'authentic' | 'flagged' | 'expired' | 'pending' | 'revoked' | 'not_found' | 'duplicate';
 
 // Class strings are written out in full so Tailwind can see them.
 const CHIP: Record<ChipKind, { label: string; cls: string; Icon: LucideIcon }> = {
+  approved: { label: 'Approved', cls: 'bg-[#f0fdfa] text-[#0f766e]', Icon: CircleCheck },
   authentic: { label: 'Authentic', cls: 'bg-[#f0fdfa] text-[#0f766e]', Icon: CircleCheck },
   flagged: { label: 'Flagged', cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: ShieldAlert },
   expired: { label: 'Expired', cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },

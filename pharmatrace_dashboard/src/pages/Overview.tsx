@@ -130,11 +130,11 @@ export default function Overview() {
               value={num(k?.batches.approved ?? 0)} note={`${num(k?.batches.pending ?? 0)} awaiting review`} />
             <Kpi loading={loading} Icon={ShieldAlert} label="Flagged batches"
               value={num(k?.batches.flagged ?? 0)} note="Currently flagged on-chain" />
-              <Kpi loading={loading} Icon={FileSearch} label="Open investigations"
-              value={num(k?.openInvestigations ?? 0)} note="Pharmacist reports awaiting review" />
             <Kpi loading={loading} Icon={ScanLine} label="Scans today"
               value={num(k?.scansToday.total ?? 0)}
               note={`Across ${num(k?.scansToday.sectors ?? 0)} sectors${k && k.scansToday.unknown > 0 ? ` · ${num(k.scansToday.unknown)} unknown` : ''}`} />
+            <Kpi loading={loading} Icon={FileSearch} label="Open investigations"
+              value={num(k?.openInvestigations ?? 0)} note="Pharmacist reports awaiting review" />
           </Carousel>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">

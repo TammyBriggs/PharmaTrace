@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { ROLE_LABEL, initials } from '../lib/format';
+import WalletChip from './WalletChip';
 import type { Role } from '../lib/api';
 
 interface NavItem { to: string; label: string; Icon: LucideIcon; roles: Role[] }
@@ -68,6 +69,7 @@ export default function AppShell() {
           </label>
 
           <div className="relative flex items-center gap-6">
+            <WalletChip />
             <button aria-label="Notifications" className="text-brand"><Bell size={20} /></button>
             <div className="h-8 w-px bg-line" aria-hidden />
             <button onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu}

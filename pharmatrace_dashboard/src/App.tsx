@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
 import Overview from './pages/Overview';
 import ComingSoon from './pages/ComingSoon';
+import Manufacturers from './pages/Manufacturers';
 import AppShell from './components/AppShell';
 import RequireRole from './auth/RequireRole';
 
@@ -16,7 +17,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route element={<RequireRole><AppShell /></RequireRole>}>
         <Route path="/overview" element={<Overview />} />
-        <Route path="/manufacturers" element={only(['regulator'], <ComingSoon title="Manufacturers" />)} />
+        <Route path="/manufacturers" element={only(['regulator'], <Manufacturers />)} />
         <Route path="/batches" element={only(['regulator', 'manufacturer'], <ComingSoon title="Batches" />)} />
         <Route path="/analytics" element={only(['regulator'], <ComingSoon title="Scan Analytics" />)} />
         <Route path="/flag-reports" element={only(['regulator'], <ComingSoon title="Flag Reports" />)} />

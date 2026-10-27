@@ -4,6 +4,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const overviewRoutes = require('./routes/overviewRoutes');
+   const manufacturerRoutes = require('./routes/manufacturerRoutes');
+   const chainRoutes = require('./routes/chainRoutes');
 
 const app = express();
 
@@ -18,6 +20,8 @@ app.use('/api/auth', authRoutes);
 // Mount the report routes
 app.use('/api/reports', reportRoutes);
 app.use('/api/overview', overviewRoutes);
+   app.use('/api/manufacturers', manufacturerRoutes);
+   app.use('/api/chain', chainRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'active', message: 'PharmaTrace API is running' });
