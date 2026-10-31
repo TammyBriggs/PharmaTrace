@@ -3,7 +3,7 @@ import { id as keccak } from 'ethers';
 import { CircleCheck, ChevronDown, ChevronLeft, ChevronRight, Clock3, Info, Loader2, Plus, Search, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
-import { explain, shortAddr, useWallet } from '../lib/wallet';
+import { explain, shortAddr, useWallet, type WalletErrorCode } from '../lib/wallet';
 import { fmtDay, num } from '../lib/format';
 import { Card, ErrorState, PageHeading, Skeleton, StatusChip, type ChipKind } from '../components/ui';
 import Modal, { btnDanger, btnPrimary, btnSecondary } from '../components/Modal';
@@ -22,13 +22,13 @@ const FILTERS: { key: Filter; label: string }[] = [
 const CHIP: Record<MStatus, ChipKind> = { active: 'approved', pending: 'pending', revoked: 'revoked' };
 
 // Keep in sync with COUNTRIES in manufacturerController.js
-const COUNTRIES = ['Rwanda', 'Kenya', 'Uganda', 'Tanzania', 'Burundi', 'DR Congo', 'Ethiopia',
+const COUNTRIES = ['Rwanda', 'Kenya', 'Uganda', 'Tanzania', 'Burundi', 'DR Congo', 'Ethiopia', 'Germany', 'Turkey', 'Oman', 'United Kingdom',
   'South Africa', 'Egypt', 'India', 'China', 'Other'];
 
 const field = 'h-11 w-full rounded-lg border border-line bg-white p-3 text-sm outline-none placeholder:text-mute/70 focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 type TxKind = 'approve' | 'revoke';
-interface TxState { m: Mf; kind: TxKind; stage: 'wallet' | 'chain' | 'record' | 'error'; error?: string; hash?: string }
+interface TxState { m: Mf; kind: TxKind; stage: 'wallet' | 'chain' | 'record' | 'error'; error?: string; errCode?: WalletErrorCode; hash?: string }
 
 export default function Manufacturers() {
   const { ensureReady } = useWallet();
@@ -73,7 +73,8 @@ export default function Manufacturers() {
       await sent.wait();
       await record(m, kind, sent.hash);
     } catch (e) {
-      setTx({ m, kind, stage: 'error', error: explain(e).message });
+      const w = explain(e);
+      setTx({ m, kind, stage: 'error', error: w.message, errCode: w.code });
     }
   }
 
@@ -219,12 +220,15 @@ function TxDialog({ tx, onClose, onRetry }: { tx: TxState; onClose: () => void; 
   const failed = tx.stage === 'error';
   const idx = steps.findIndex(([s]) => s === tx.stage);
   return (
-    <Modal title={failed ? 'Transaction not completed' : `${verb} ${tx.m.name}`} onClose={onClose} busy={!failed}>
+    <Modal title={failed ? (tx.errCode === 'SETUP' ? 'Blockchain not ready' : 'Transaction not completed') : `${verb} ${tx.m.name}`} onClose={onClose} busy={!failed}>
       {failed ? (
         <>
           <div role="alert" className="flex items-start gap-3 rounded-lg bg-[#fef2f2] p-4 text-sm text-[#b91c1c]">
             <TriangleAlert size={18} className="mt-0.5 shrink-0" aria-hidden /> {tx.error}
           </div>
+          {tx.errCode === 'SETUP' && (
+            <p className="text-sm text-mute">This is a server or blockchain set-up issue, not a wallet problem. Start the Hardhat node, run the deploy script, then try again.</p>
+          )}
           <div className="flex justify-end gap-3">
             <button className={btnSecondary} onClick={onClose}>Close</button>
             <button className={btnPrimary} onClick={onRetry}>{tx.hash ? 'Retry saving' : 'Try again'}</button>

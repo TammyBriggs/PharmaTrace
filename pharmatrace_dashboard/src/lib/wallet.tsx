@@ -12,7 +12,7 @@ declare global { interface Window { ethereum?: Eip1193 } }
 
 export interface ChainConfig { address: string; chainId: number; rpcUrl: string; abi: InterfaceAbi }
 
-export type WalletErrorCode = 'NO_WALLET' | 'NO_LINKED_WALLET' | 'REJECTED' | 'WRONG_ACCOUNT' | 'CHAIN' | 'REVERT';
+export type WalletErrorCode = 'SETUP' | 'NO_WALLET' | 'NO_LINKED_WALLET' | 'REJECTED' | 'WRONG_ACCOUNT' | 'CHAIN' | 'REVERT';
 export class WalletError extends Error {
   constructor(public code: WalletErrorCode, message: string) { super(message); }
 }
@@ -57,10 +57,15 @@ const Ctx = createContext<WalletState | null>(null);
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const linked = user?.wallet_address ?? null;
-  const [account, setAccount] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<string[]>([]);
   const [chainId, setChainId] = useState<number | null>(null);
   const [config, setConfig] = useState<ChainConfig | null>(null);
   const cfgPromise = useRef<Promise<ChainConfig> | null>(null);
+  // MetaMask can permit several accounts at once and lists them in any order, so never trust
+  // accounts[0]: prefer the registered wallet whenever it is among the permitted ones.
+  const account = useMemo(
+    () => accounts.find((a) => !!linked && a.toLowerCase() === linked.toLowerCase()) ?? accounts[0] ?? null,
+    [accounts, linked]);
   const hasProvider = typeof window !== 'undefined' && !!window.ethereum;
 
   const loadConfig = useCallback(() => {
@@ -74,7 +79,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const eth = window.ethereum;
     if (!eth || !user) return;
-    const readAccounts = (a: unknown) => setAccount(Array.isArray(a) && a[0] ? String(a[0]) : null);
+    const readAccounts = (a: unknown) => setAccount(pickAccount(a, linked));
     const readChain = (c: unknown) => setChainId(parseInt(String(c), 16));
     eth.request({ method: 'eth_accounts' }).then(readAccounts).catch(() => {});
     eth.request({ method: 'eth_chainId' }).then(readChain).catch(() => {});
@@ -82,14 +87,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     eth.on?.('chainChanged', readChain);
     loadConfig().catch(() => {});
     return () => { eth.removeListener?.('accountsChanged', readAccounts); eth.removeListener?.('chainChanged', readChain); };
-  }, [user, loadConfig]);
+  }, [user, linked, loadConfig]);
 
   const connect = useCallback(async () => {
     const eth = window.ethereum;
     if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
     try {
       const a = await eth.request({ method: 'eth_requestAccounts' });
-      setAccount(Array.isArray(a) && a[0] ? String(a[0]) : null);
+      setAccounts(Array.isArray(a) ? a.map(String) : []);
     } catch (e) { throw explain(e); }
   }, []);
 
@@ -98,8 +103,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
     if (!linked) throw new WalletError('NO_LINKED_WALLET', 'Your account has no wallet linked, so it cannot sign on-chain actions. Ask an administrator to add one.');
     try {
-      const cfg = await loadConfig();
-      let accounts = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
+      let cfg: ChainConfig;
+      try { const cfg = await loadConfig().catch((e: Error) => {
+  		throw new WalletError('SETUP', `Blockchain not ready: ${e.message}`);
+	}); }
+      catch (e) { throw new WalletError('SETUP', (e as Error).message); }   // server/chain setup, not a wallet problem
+      let accs = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
+      setAccounts(accs);
 
       const hex = `0x${cfg.chainId.toString(16)}`;
       if (String(await eth.request({ method: 'eth_chainId' })).toLowerCase() !== hex) {
@@ -112,13 +122,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             params: [{ chainId: hex, chainName: 'Hardhat Local', rpcUrls: [cfg.rpcUrl], nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 } }],
           });
         }
-        accounts = (await eth.request({ method: 'eth_accounts' })) as string[];
+        accs = (await eth.request({ method: 'eth_accounts' })) as string[];
+        setAccounts(accs);
       }
 
-      const match = accounts.find((a) => a.toLowerCase() === linked.toLowerCase());
+      const match = accs.find((a) => a.toLowerCase() === linked.toLowerCase());
       if (!match) {
         throw new WalletError('WRONG_ACCOUNT', `Switch MetaMask to your registered wallet ${shortAddr(linked)}, then try again.`);
       }
+      // MetaMask may permit several accounts in any order: prefer the registered wallet.
+	const pickAccount = (a: unknown, linked: string | null): string | null => {
+  		if (!Array.isArray(a) || a.length === 0) return null;
+  			const list = a.map(String);
+  		return list.find((x) => linked && x.toLowerCase() === linked.toLowerCase()) ?? list[0];
+	};
       const signer = await new BrowserProvider(eth).getSigner(match);
       return new Contract(cfg.address, cfg.abi, signer);
     } catch (e) { throw explain(e); }

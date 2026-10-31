@@ -4,7 +4,7 @@ const { getProvider, assertDeployed } = require('../config/chain');
 const { recordAudit } = require('../utils/audit');
 
 const COUNTRIES = ['Rwanda', 'Kenya', 'Uganda', 'Tanzania', 'Burundi', 'DR Congo', 'Ethiopia',
-  'South Africa', 'Egypt', 'India', 'China', 'Other'];
+  'South Africa', 'Egypt', 'India', 'Germany', 'China', 'Other'];
 const PAGE_SIZE = 6;
 const TX = /^0x[0-9a-fA-F]{64}$/;
 const LICENCE = /^[A-Z0-9][A-Z0-9\-/ ]{2,79}$/;
