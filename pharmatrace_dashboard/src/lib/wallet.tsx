@@ -42,6 +42,21 @@ export function explain(e: unknown): WalletError {
   return new WalletError('CHAIN', msg.length > 200 ? `${msg.slice(0, 200)}…` : msg);
 }
 
+/** Switches MetaMask to the Hardhat network (adding it if needed). No-op when already on it. */
+async function switchToChain(eth: Eip1193, cfg: ChainConfig) {
+  const hex = `0x${cfg.chainId.toString(16)}`;
+  if (String(await eth.request({ method: 'eth_chainId' })).toLowerCase() === hex) return;
+  try {
+    await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hex }] });
+  } catch (e) {
+    if ((e as { code?: number }).code !== 4902) throw e;       // 4902: network not added yet
+    await eth.request({
+      method: 'wallet_addEthereumChain',
+      params: [{ chainId: hex, chainName: 'Hardhat Local', rpcUrls: [cfg.rpcUrl], nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 } }],
+    });
+  }
+}
+
 interface WalletState {
   hasProvider: boolean;
   account: string | null;
@@ -49,6 +64,10 @@ interface WalletState {
   expectedChainId: number | null;
   linkedWallet: string | null;
   connect: () => Promise<void>;
+  /** Opens MetaMask's account picker so the site can be given a different account. */
+  switchAccount: () => Promise<void>;
+  /** Switches MetaMask to the Hardhat network. */
+  switchNetwork: () => Promise<void>;
   /** Prompts as needed, checks network and account, and returns a contract bound to the signer. */
   ensureReady: () => Promise<Contract>;
 }
@@ -89,6 +108,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return () => { eth.removeListener?.('accountsChanged', readAccounts); eth.removeListener?.('chainChanged', readChain); };
   }, [user, linked, loadConfig]);
 
+  const switchNetwork = useCallback(async () => {
+    const eth = window.ethereum;
+    if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
+    try {
+      let cfg: ChainConfig;
+      try { cfg = await loadConfig(); }
+      catch (e) { throw new WalletError('SETUP', `Blockchain not ready: ${(e as Error).message}`); }
+      await switchToChain(eth, cfg);
+    } catch (e) { throw explain(e); }
+  }, [loadConfig]);
+
   const connect = useCallback(async () => {
     const eth = window.ethereum;
     if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
@@ -101,8 +131,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         a = (await eth.request({ method: 'eth_accounts' })) as string[];
       }
       setAccounts(Array.isArray(a) ? a.map(String) : []);
+      await switchNetwork().catch(() => {});   // the chip offers a Switch button if this is declined or the chain isn't ready
     } catch (e) { throw explain(e); }
-  }, [linked]);
+  }, [linked, switchNetwork]);
+
+  const switchAccount = useCallback(async () => {
+    const eth = window.ethereum;
+    if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
+    try {
+      await eth.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
+      const a = (await eth.request({ method: 'eth_accounts' })) as string[];
+      setAccounts(Array.isArray(a) ? a.map(String) : []);
+    } catch (e) { throw explain(e); }
+  }, []);
 
   const ensureReady = useCallback(async () => {
     const eth = window.ethereum;
@@ -115,20 +156,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       let accs = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
       setAccounts(accs);
 
-      const hex = `0x${cfg.chainId.toString(16)}`;
-      if (String(await eth.request({ method: 'eth_chainId' })).toLowerCase() !== hex) {
-        try {
-          await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hex }] });
-        } catch (e) {
-          if ((e as { code?: number }).code !== 4902) throw e;       // 4902: network not added yet
-          await eth.request({
-            method: 'wallet_addEthereumChain',
-            params: [{ chainId: hex, chainName: 'Hardhat Local', rpcUrls: [cfg.rpcUrl], nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 } }],
-          });
-        }
-        accs = (await eth.request({ method: 'eth_accounts' })) as string[];
-        setAccounts(accs);
-      }
+      await switchToChain(eth, cfg);
+      accs = (await eth.request({ method: 'eth_accounts' })) as string[];
+      setAccounts(accs);
 
       const match = accs.find((a) => a.toLowerCase() === linked.toLowerCase());
       if (!match) {
@@ -140,8 +170,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [linked, loadConfig]);
 
   const value = useMemo<WalletState>(() => ({
-    hasProvider, account, chainId, expectedChainId: config?.chainId ?? null, linkedWallet: linked, connect, ensureReady,
-  }), [hasProvider, account, chainId, config, linked, connect, ensureReady]);
+    hasProvider, account, chainId, expectedChainId: config?.chainId ?? null, linkedWallet: linked, connect, switchAccount, switchNetwork, ensureReady,
+  }), [hasProvider, account, chainId, config, linked, connect, switchAccount, switchNetwork, ensureReady]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
