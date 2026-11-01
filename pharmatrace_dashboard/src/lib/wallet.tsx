@@ -79,7 +79,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const eth = window.ethereum;
     if (!eth || !user) return;
-    const readAccounts = (a: unknown) => setAccount(pickAccount(a, linked));
+    const readAccounts = (a: unknown) => setAccounts(Array.isArray(a) ? a.map(String) : []);
     const readChain = (c: unknown) => setChainId(parseInt(String(c), 16));
     eth.request({ method: 'eth_accounts' }).then(readAccounts).catch(() => {});
     eth.request({ method: 'eth_chainId' }).then(readChain).catch(() => {});
@@ -93,10 +93,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const eth = window.ethereum;
     if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
     try {
-      const a = await eth.request({ method: 'eth_requestAccounts' });
+      let a = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
+      // If this site was already permitted with a different account (e.g. the super admin's), MetaMask
+      // returns that account without asking. Open the account picker so the registered wallet can be chosen.
+      if (linked && !a.some((x) => x.toLowerCase() === linked.toLowerCase())) {
+        await eth.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
+        a = (await eth.request({ method: 'eth_accounts' })) as string[];
+      }
       setAccounts(Array.isArray(a) ? a.map(String) : []);
     } catch (e) { throw explain(e); }
-  }, []);
+  }, [linked]);
 
   const ensureReady = useCallback(async () => {
     const eth = window.ethereum;
@@ -104,10 +110,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!linked) throw new WalletError('NO_LINKED_WALLET', 'Your account has no wallet linked, so it cannot sign on-chain actions. Ask an administrator to add one.');
     try {
       let cfg: ChainConfig;
-      try { const cfg = await loadConfig().catch((e: Error) => {
-  		throw new WalletError('SETUP', `Blockchain not ready: ${e.message}`);
-	}); }
-      catch (e) { throw new WalletError('SETUP', (e as Error).message); }   // server/chain setup, not a wallet problem
+      try { cfg = await loadConfig(); }
+      catch (e) { throw new WalletError('SETUP', `Blockchain not ready: ${(e as Error).message}`); }   // server/chain setup, not a wallet problem
       let accs = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
       setAccounts(accs);
 
@@ -130,12 +134,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (!match) {
         throw new WalletError('WRONG_ACCOUNT', `Switch MetaMask to your registered wallet ${shortAddr(linked)}, then try again.`);
       }
-      // MetaMask may permit several accounts in any order: prefer the registered wallet.
-	const pickAccount = (a: unknown, linked: string | null): string | null => {
-  		if (!Array.isArray(a) || a.length === 0) return null;
-  			const list = a.map(String);
-  		return list.find((x) => linked && x.toLowerCase() === linked.toLowerCase()) ?? list[0];
-	};
       const signer = await new BrowserProvider(eth).getSigner(match);
       return new Contract(cfg.address, cfg.abi, signer);
     } catch (e) { throw explain(e); }
