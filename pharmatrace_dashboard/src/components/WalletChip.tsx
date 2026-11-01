@@ -8,7 +8,7 @@ export default function WalletChip() {
   const { user } = useAuth();
   const w = useWallet();
   const [err, setErr] = useState<string | null>(null);
-  if (!user || user.role === 'manufacturer') return null;
+  if (!user) return null;
 
   const base = 'flex h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold';
   if (!w.hasProvider) {

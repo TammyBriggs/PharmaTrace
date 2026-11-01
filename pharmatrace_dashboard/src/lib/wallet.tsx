@@ -20,11 +20,14 @@ export class WalletError extends Error {
 export const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 const REVERTS: Record<string, string> = {
-  AccessControlUnauthorizedAccount: 'This wallet does not have the regulator role on the contract.',
+  AccessControlUnauthorizedAccount: 'This wallet does not have the role this action needs on the contract (regulator to approve, flag or revoke; approved manufacturer to submit).',
   AlreadyRegistered: 'This wallet is already registered as a manufacturer on-chain.',
   NotAManufacturer: 'This wallet is not a registered manufacturer on-chain.',
   EnforcedPause: 'The contract is paused by the administrator.',
   InvalidInput: 'The contract rejected these details as invalid.',
+  BatchAlreadyExists: 'A batch with this number is already recorded on-chain for this manufacturer.',
+  BatchNotFound: 'This batch is not recorded on-chain.',
+  InvalidBatchState: 'The batch is in a different state on-chain, so this action no longer applies. Refresh and check its status.',
 };
 
 /** Turns anything MetaMask/ethers throws into a message a regulator can act on. */
