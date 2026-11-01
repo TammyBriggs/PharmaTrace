@@ -31,6 +31,10 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'active', message: 'PharmaTrace API is running' });
 });
 
+app.set('trust proxy', 1);                       // so scans behind ngrok are counted per visitor
+app.use('/api/serials', require('./routes/serialRoutes'));
+app.use(require('./routes/verifyRoutes'));       // serves /api/verify and the phone page at /01/...
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

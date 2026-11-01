@@ -1,6 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Ban, Check, CircleAlert, CircleCheck, Clock3, Download, Flag, MapPin, RotateCcw, ShieldAlert, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Ban, Check, CircleAlert, CircleCheck, Clock3, Download, Flag, MapPin, Printer, RotateCcw, ShieldAlert, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useApi } from '../lib/useApi';
 import { useAuth } from '../auth/AuthContext';
@@ -140,11 +140,12 @@ export default function BatchDetail() {
 
       <div className="flex flex-wrap items-start gap-6">
         <Card className="flex w-80 max-w-full shrink-0 flex-col gap-4">
-          <h2 className="text-lg font-semibold">Batch QR</h2>
+          <h2 className="text-lg font-semibold">Batch code</h2>
           <div id="batch-qr" className="flex justify-center"><QRCodeSVG value={b.link} size={160} level="M" marginSize={2} title={`QR code for batch ${b.batchNo}`} /></div>
           <p className="font-mono text-xs">{b.batchNo}</p>
           <button onClick={() => downloadQr(b.batchNo)} className={`${btnSecondary} flex w-fit items-center gap-2`}><Download size={16} aria-hidden /> Download QR</button>
-          <p className="text-xs text-mute">Encodes this batch’s GS1 Digital Link: <span className="break-all font-mono">{b.link}</span>. Per-pack serial codes are generated separately.</p>
+          <p className="text-xs text-mute">Identifies the whole batch (GS1 Digital Link): <span className="break-all font-mono">{b.link}</span>. Each pack has its own code with a unique serial.</p>
+          <Link to={`/batches/${b.id}/print`} className={`${btnSecondary} flex w-fit items-center gap-2`}><Printer size={16} aria-hidden /> Print pack codes</Link>
         </Card>
 
         <Card className="flex min-w-72 flex-1 flex-col gap-4">

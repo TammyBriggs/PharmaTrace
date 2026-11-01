@@ -6,6 +6,7 @@ import ComingSoon from './pages/ComingSoon';
 import Manufacturers from './pages/Manufacturers';
 import Batches from './pages/Batches';
 import BatchDetail from './pages/BatchDetail';
+import BatchPrint from './pages/BatchPrint';
 import AppShell from './components/AppShell';
 import RequireRole from './auth/RequireRole';
 
@@ -17,6 +18,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/batches/:id/print" element={only(['regulator', 'manufacturer'], <BatchPrint />)} />
       <Route element={<RequireRole><AppShell /></RequireRole>}>
         <Route path="/overview" element={<Overview />} />
         <Route path="/manufacturers" element={only(['regulator'], <Manufacturers />)} />

@@ -26,8 +26,31 @@ function randomSerial(len = 12) {
   return s;
 }
 
+/** Public address that QR codes point to (set PUBLIC_BASE_URL in .env, e.g. your ngrok https URL). */
+function baseUrl() {
+  const raw = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+  return raw || `http://localhost:${process.env.PORT || 3000}`;
+}
+
 /** GS1 Digital Link for a batch (no serial) or a unit (with serial). Identifiers only, no status. */
 const digitalLink = (gtin, batchNo, serial) =>
-  `https://pharmatrace.rw/01/${gtin}/10/${encodeURIComponent(batchNo)}${serial ? `/21/${serial}` : ''}`;
+  `${baseUrl()}/01/${gtin}/10/${encodeURIComponent(batchNo)}${serial ? `/21/${serial}` : ''}`;
 
-module.exports = { checkDigit, isValidGtin, deriveGtin, randomSerial, digitalLink };
+/**
+ * Reads GTIN / batch / serial out of a scanned GS1 Digital Link. The host is ignored on purpose, so codes
+ * printed with an older address (or a different tunnel) still verify. Returns null if it is not a PharmaTrace code.
+ */
+function parseDigitalLink(input) {
+  let path = String(input || '').trim().slice(0, 600);
+  if (/^https?:\/\//i.test(path)) { try { path = new URL(path).pathname; } catch { return null; } }
+  const m = path.match(/\/01\/(\d{14})(?:\/10\/([^/?#]+))?(?:\/21\/([^/?#]+))?\/?$/);
+  if (!m || !isValidGtin(m[1])) return null;
+  let batchNo = null;
+  try { batchNo = m[2] ? decodeURIComponent(m[2]).toUpperCase() : null; } catch { return null; }
+  const serial = m[3] ? m[3].toUpperCase() : null;
+  if (batchNo !== null && !/^[A-Z0-9][A-Z0-9\-/]{2,39}$/.test(batchNo)) return null;
+  if (serial !== null && !/^[A-Z0-9]{1,20}$/.test(serial)) return null;
+  return { gtin: m[1], batchNo, serial };
+}
+
+module.exports = { checkDigit, isValidGtin, deriveGtin, randomSerial, digitalLink, parseDigitalLink, baseUrl };
