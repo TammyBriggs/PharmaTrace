@@ -7,6 +7,7 @@ const overviewRoutes = require('./routes/overviewRoutes');
 const manufacturerRoutes = require('./routes/manufacturerRoutes');
 const chainRoutes = require('./routes/chainRoutes');
 const productRoutes = require('./routes/productRoutes');
+const batchRoutes = require('./routes/batchRoutes');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/overview', overviewRoutes);
 app.use('/api/manufacturers', manufacturerRoutes);
 app.use('/api/chain', chainRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/batches', batchRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'active', message: 'PharmaTrace API is running' });

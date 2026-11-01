@@ -1,10 +1,12 @@
 const pool = require('../config/db');
+const { deriveGtin } = require('../utils/gs1');
 const CATEGORIES = ['Antimalarial', 'Antibiotic', 'ARV'];
 
 const toApi = (r) => ({
   id: r.id, registrationNumber: r.registration_number, brandName: r.brand_name, genericName: r.generic_name,
   strength: r.strength, dosageForm: r.dosage_form, packSize: r.pack_size, shelfLifeMonths: r.shelf_life_months,
   category: r.category, manufacturerName: r.manufacturer_name, country: r.country,
+  gtin: deriveGtin(r.registration_number),
 });
 
 // GET /api/products?q=&category=&manufacturer=&limit=   (feeds the Submit-batch product picker)
