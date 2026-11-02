@@ -11,6 +11,7 @@ const batchRoutes = require('./routes/batchRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 
 
+
 const app = express();
 
 app.use(cors({
@@ -29,6 +30,9 @@ app.use('/api/chain', chainRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/batches', batchRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/search', require('./routes/searchRoutes'));
+
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'active', message: 'PharmaTrace API is running' });

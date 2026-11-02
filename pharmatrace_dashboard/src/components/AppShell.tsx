@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import {
-  Bell, Building2, ChartNoAxesCombined, ChevronDown, ClipboardList, Flag, LayoutDashboard,
-  LogOut, Pill, Search, ShieldCheck, ShieldPlus, type LucideIcon,
+  Building2, ChartNoAxesCombined, ChevronDown, ClipboardList, Flag, LayoutDashboard,
+  LogOut, Pill, ShieldCheck, ShieldPlus, type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { ROLE_LABEL, initials } from '../lib/format';
 import WalletChip from './WalletChip';
+import NotificationPanel from './NotificationPanel';
+import GlobalSearch from './GlobalSearch';
 import type { Role } from '../lib/api';
 
 interface NavItem { to: string; label: string; Icon: LucideIcon; roles: Role[] }
@@ -37,7 +39,7 @@ export default function AppShell() {
             </div>
             <span className="text-xl font-semibold">PharmaTrace</span>
           </div>
-          <p className="text-xs text-mute">REGULATORY WORKSPACE</p>
+          <p className="text-xs text-mute">{user.role === 'manufacturer' ? 'MANUFACTURER WORKSPACE' : 'REGULATORY WORKSPACE'}</p>
         </div>
 
         <nav aria-label="Primary" className="flex flex-col gap-2">
@@ -60,17 +62,11 @@ export default function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-22 shrink-0 items-center justify-between gap-6 border-b border-line px-8">
-          <label className="relative block w-100 max-w-full">
-            <span className="sr-only">Search</span>
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" aria-hidden />
-            {/* Search is wired up with the Batches module */}
-            <input disabled placeholder="Search batch, manufacturer or transaction"
-              className="h-10 w-full rounded-lg border border-line bg-canvas pl-10 pr-3 text-sm placeholder:text-mute disabled:cursor-not-allowed" />
-          </label>
+          <GlobalSearch canSearchManufacturers={user.role !== 'manufacturer'} />
 
           <div className="relative flex items-center gap-6">
             <WalletChip />
-            <button aria-label="Notifications" className="text-brand"><Bell size={20} /></button>
+            <NotificationPanel />
             <div className="h-8 w-px bg-line" aria-hidden />
             <button onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu}
               className="flex items-center gap-3 text-left">

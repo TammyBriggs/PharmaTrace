@@ -6,6 +6,7 @@ import FlagReports from './pages/FlagReports';
 import ScanAnalytics from './pages/ScanAnalytics';
 import AuditLog from './pages/AuditLog';
 import Manufacturers from './pages/Manufacturers';
+import ManufacturerDetail from './pages/ManufacturerDetail';
 import Batches from './pages/Batches';
 import BatchDetail from './pages/BatchDetail';
 import BatchPrint from './pages/BatchPrint';
@@ -24,6 +25,7 @@ export default function App() {
       <Route element={<RequireRole><AppShell /></RequireRole>}>
         <Route path="/overview" element={<Overview />} />
         <Route path="/manufacturers" element={only(['regulator'], <Manufacturers />)} />
+        <Route path="/manufacturers/:id" element={only(['regulator'], <ManufacturerDetail />)} />
         <Route path="/batches" element={only(['regulator', 'manufacturer'], <Batches />)} />
         <Route path="/batches/:id" element={only(['regulator', 'manufacturer'], <BatchDetail />)} />
         <Route path="/analytics" element={only(['regulator'], <ScanAnalytics />)} />

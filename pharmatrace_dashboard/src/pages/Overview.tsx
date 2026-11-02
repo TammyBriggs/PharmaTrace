@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useApi } from '../lib/useApi';
 import type { OverviewData, VerdictKey } from '../lib/types';
 import { categoryLabel, fmtDay, num } from '../lib/format';
+import ManufacturerOverview from './ManufacturerOverview';
 import Carousel, { CARD_BASIS } from '../components/Carousel';
 import { Card, ErrorState, PageHeading, Skeleton, StatusChip } from '../components/ui';
 
@@ -105,7 +106,7 @@ export default function Overview() {
   const { data, error, loading, reload } = useApi<OverviewData>(isManufacturer ? null : '/overview');
 
   if (isManufacturer) {
-    return <PageHeading title="Overview" subtitle="Your manufacturer workspace opens up with the Batches module." />;
+    return <ManufacturerOverview />;
   }
 
   const pts = data?.scansOverTime.points ?? [];

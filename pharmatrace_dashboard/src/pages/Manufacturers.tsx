@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { id as keccak } from 'ethers';
+import { Link } from 'react-router-dom';
 import { CircleCheck, ChevronDown, ChevronLeft, ChevronRight, Clock3, Info, Loader2, Plus, Search, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
@@ -131,7 +132,7 @@ export default function Manufacturers() {
                 ))}
                 {data?.items.map((m) => (
                   <tr key={m.id} className={`h-16 border-t border-line ${m.status === 'pending' ? 'bg-brand-tint/50' : ''}`}>
-                    <td className="px-4"><div className="truncate font-semibold">{m.name}</div><div className="text-xs text-mute">{m.country}</div></td>
+                    <td className="px-4"><Link to={`/manufacturers/${m.id}`} className="block truncate font-semibold hover:text-brand hover:underline">{m.name}</Link><div className="text-xs text-mute">{m.country}</div></td>
                     <td className="px-4 font-mono text-xs">{m.licenseNumber}</td>
                     <td className="px-4 font-mono text-xs text-brand" title={m.wallet}>{shortAddr(m.wallet)}</td>
                     <td className="px-4"><StatusChip kind={CHIP[m.status]} /></td>
