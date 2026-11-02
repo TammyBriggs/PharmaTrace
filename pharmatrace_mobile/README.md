@@ -1,16 +1,16 @@
-# pharmatrace_mobile
+# PharmaTrace mobile app
 
-A new Flutter project.
+Flutter app for patients and pharmacists. Patients scan a pack without signing in. Pharmacists sign in to record sales and report suspicious products. The full setup is in the [main README](../README.md).
 
-## Getting Started
+```bash
+flutter pub get
+dart run flutter_native_splash:create
+flutter run --dart-define=API_BASE_URL=https://<your-ngrok-address>
+```
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+lib/
+├── core/        theme (light and dark), sectors, config, formatting, shared widgets
+├── data/        models (batch, batch history) and the API service
+└── features/    scan, verification, history, profile, auth, onboarding
+```
