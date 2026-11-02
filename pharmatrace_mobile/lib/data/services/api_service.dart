@@ -36,7 +36,7 @@ class AmbiguousBatchException implements Exception {
 }
 
 class ApiService {
-  static const String baseUrl = AppConfig.apiBaseUrl;
+  static String get baseUrl => AppConfig.apiBaseUrl;
 
   static Future<Map<String, dynamic>> login(
     String contact,
