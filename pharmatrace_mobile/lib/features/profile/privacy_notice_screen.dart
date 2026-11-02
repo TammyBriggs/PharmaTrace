@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/auth_manager.dart';
 import '../../core/theme.dart';
 
 /// Plain-language summary of what the app collects and why.
@@ -8,6 +9,8 @@ class PrivacyNoticeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    // Reporting a product and recording a sale are pharmacist-only, so patients do not see those parts.
+    final isPharmacist = AuthManager().isPharmacist;
 
     Widget section(String title, List<String> points) {
       return Padding(
@@ -46,17 +49,21 @@ class PrivacyNoticeScreen extends StatelessWidget {
             'If you are signed in as a pharmacist, the scan is also linked to your account and your sector. Patients who scan without signing in are not identified.',
             'The camera is only used to read QR codes. Photos of what the camera sees are not stored.',
           ]),
-          section('When you report a product', [
+          if (isPharmacist)
+            section('When you report a product', [
             'A report shares the batch number, your sector, your notes and the photo you choose to add.',
             'Reports are seen by the Rwanda FDA review team. Do not include patient names or medical details.',
             'A report does not confirm that a product is counterfeit. It asks the team to review it.',
           ]),
-          section('When you record a sale', [
+          if (isPharmacist)
+            section('When you record a sale', [
             'Marking a pack as dispensed records the pack, the time and your account. It is used to spot copies of a pack that was already sold.',
           ]),
           section('On your phone', [
             'Your scan history, display settings and profile are saved on this device. Clearing the scan history in the History tab removes it from the phone.',
-            'Gallery access is only used when you choose a profile picture or a report photo.',
+            isPharmacist
+                ? 'Gallery access is only used when you choose a profile picture or a report photo.'
+                : 'Gallery access is only used when you choose a profile picture.',
           ]),
         ],
       ),

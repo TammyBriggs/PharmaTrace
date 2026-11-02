@@ -195,12 +195,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Camera access is used to scan packaging. '
-                  'Gallery access is used to upload reporting evidence. '
-                  'Reports share the photo, location, batch code and notes '
-                  'you choose to submit.\n\n'
-                  'Do not include patient information. Review the details '
-                  'before submitting a report.',
+                  isPharmacist
+                      ? 'Camera access is used to scan packaging. '
+                          'Gallery access is used to change your profile photo and upload reporting evidence. '
+                          'Reports share the photo, location, batch code and notes '
+                          'you choose to submit.\n\n'
+                          'Do not include patient information. Review the details '
+                          'before submitting a report.'
+                      : 'Camera access is used to scan packaging. '
+                          'Gallery access is used to change or upload profile photos.',
                   style: TextStyle(
                     color: c.textSecondary,
                     height: 1.4,
