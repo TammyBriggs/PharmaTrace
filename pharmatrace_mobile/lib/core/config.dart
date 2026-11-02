@@ -1,7 +1,7 @@
 class AppConfig {
   static const String _raw = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000/api', // Android emulator
+    defaultValue: 'https://chomp-armhole-scorebook.ngrok-free.dev/api', // Physical Device
   );
 
   /// The server address with "/api" on the end, so `--dart-define=API_BASE_URL=https://xyz.ngrok-free.dev`
