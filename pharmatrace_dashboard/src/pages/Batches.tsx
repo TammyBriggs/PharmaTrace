@@ -28,7 +28,10 @@ export default function Batches() {
   const [submitOpen, setSubmitOpen] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
 
-  useEffect(() => { const t = setTimeout(() => { setSearch(q.trim()); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
+  useEffect(() => {
+    const t = setTimeout(() => { const v = q.trim(); if (v !== search) { setSearch(v); setPage(1); } }, 300);   // only reset the page when the search really changed
+    return () => clearTimeout(t);
+  }, [q, search]);
 
   const params = new URLSearchParams({ page: String(page) });
   if (search) params.set('search', search);
