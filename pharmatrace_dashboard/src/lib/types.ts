@@ -1,4 +1,4 @@
-export type VerdictKey = 'authentic' | 'flagged' | 'expired' | 'pending' | 'revoked' | 'not_found';
+export type VerdictKey = 'authentic' | 'flagged' | 'expired' | 'pending' | 'revoked' | 'not_found' | 'duplicate';
 export type AlertKind = 'flagged' | 'expired' | 'pending' | 'revoked' | 'duplicate';
 
 export interface OverviewData {

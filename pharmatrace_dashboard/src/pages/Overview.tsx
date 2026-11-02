@@ -9,11 +9,11 @@ import { Card, ErrorState, PageHeading, Skeleton, StatusChip } from '../componen
 
 const VERDICT_COLOR: Record<VerdictKey, string> = {
   authentic: '#0f766e', flagged: '#b91c1c', expired: '#b45309',
-  pending: '#f59e0b', revoked: '#7f1d1d', not_found: '#9ca3af',
+  pending: '#f59e0b', revoked: '#7f1d1d', not_found: '#9ca3af', duplicate: '#ef4444',
 };
 const VERDICT_LABEL: Record<VerdictKey, string> = {
   authentic: 'Authentic', flagged: 'Flagged', expired: 'Expired',
-  pending: 'Pending', revoked: 'Revoked', not_found: 'Not found',
+  pending: 'Pending', revoked: 'Revoked', not_found: 'Not found', duplicate: 'Duplicate',
 };
 // Figma lists these four; pending/revoked appear only when there is something to show.
 const ALWAYS: VerdictKey[] = ['authentic', 'flagged', 'expired', 'not_found'];
