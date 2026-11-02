@@ -9,7 +9,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
   return <div aria-hidden className={`animate-pulse rounded bg-line/70 ${className}`} />;
 }
 
-export type ChipKind = 'approved' | 'authentic' | 'flagged' | 'expired' | 'pending' | 'revoked' | 'not_found' | 'duplicate' | 'under_review' | 'closed';
+export type ChipKind = 'approved' | 'authentic' | 'flagged' | 'expired' | 'pending' | 'revoked' | 'not_found' | 'duplicate' | 'under_review' | 'closed' | 'high_risk' | 'needs_review';
 
 // Class strings are written out in full so Tailwind can see them.
 const CHIP: Record<ChipKind, { label: string; cls: string; Icon: LucideIcon }> = {
@@ -23,6 +23,8 @@ const CHIP: Record<ChipKind, { label: string; cls: string; Icon: LucideIcon }> =
   duplicate: { label: 'Duplicate', cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: Copy },
   under_review: { label: 'Under review', cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
   closed: { label: 'Closed', cls: 'bg-[#f3f4f6] text-mute', Icon: CircleHelp },
+  high_risk: { label: 'High risk', cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: ShieldAlert },
+  needs_review: { label: 'Needs review', cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
 };
 
 export function StatusChip({ kind }: { kind: ChipKind }) {

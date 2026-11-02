@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, CircleCheck, Download, ExternalLink, Loader2, Search, SearchX, TriangleAlert } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useApi } from '../lib/useApi';
@@ -15,8 +15,10 @@ const CHIPS: { key: Filter; label: string }[] = [
 ];
 
 export default function FlagReports() {
-  const [q, setQ] = useState('');
-  const [search, setSearch] = useState('');
+  const [sp] = useSearchParams();
+  const initialQ = (sp.get('q') ?? '').slice(0, 80);          // deep link, e.g. from Scan Analytics
+  const [q, setQ] = useState(initialQ);
+  const [search, setSearch] = useState(initialQ);
   const [filter, setFilter] = useState<Filter>('all');
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
