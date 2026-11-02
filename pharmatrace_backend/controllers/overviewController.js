@@ -5,7 +5,7 @@ const pool = require('../config/db');
 const LOCAL = `((s.scanned_at AT TIME ZONE 'UTC') AT TIME ZONE 'Africa/Kigali')`;
 const TODAY = `date_trunc('day', NOW() AT TIME ZONE 'Africa/Kigali')`;
 
-const VERDICT_KEYS = ['authentic', 'flagged', 'expired', 'pending', 'revoked', 'not_found'];
+const VERDICT_KEYS = ['authentic', 'flagged', 'expired', 'pending', 'revoked', 'not_found', 'duplicate'];
 
 const where = (sector) => (sector ? ` in ${sector}` : '');
 const ALERT_TEXT = {
@@ -13,6 +13,7 @@ const ALERT_TEXT = {
   expired: (a) => `Expired batch scanned${where(a.sector)}`,
   pending: (a) => `Unapproved batch scanned${where(a.sector)}`,
   revoked: (a) => `Revoked batch scanned${where(a.sector)}`,
+  duplicate: (a) => `Already-dispensed pack scanned${where(a.sector)}`,
 };
 
 const getOverview = async (req, res) => {
@@ -49,7 +50,7 @@ const getOverview = async (req, res) => {
                          s.scanned_at AT TIME ZONE 'UTC' AS at,
                          to_char(${LOCAL}, 'HH24:MI') AS time
                   FROM scan_events s LEFT JOIN batches b ON b.id = s.batch_uuid
-                  WHERE s.verdict IN ('flagged','expired','pending','revoked')
+                  WHERE s.verdict IN ('flagged','expired','pending','revoked','duplicate')
                     AND s.scanned_at >= NOW() - interval '7 days'
                   ORDER BY s.scanned_at DESC LIMIT 5`),
       // Same serial seen in 2+ sectors within 24h is the cloned-packaging signal.

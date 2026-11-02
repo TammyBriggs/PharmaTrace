@@ -187,6 +187,14 @@ const THEME = {
   revoked: ['#fef2f2', '#b91c1c', 'Revoked', ICON.no], duplicate: ['#fef2f2', '#b91c1c', 'Already dispensed', ICON.warn],
   not_found: ['#f3f4f6', '#4b5563', 'Not found', ICON.ask],
 };
+// Times are shown in Kigali time (override with DISPLAY_TIMEZONE in .env).
+const TZ = process.env.DISPLAY_TIMEZONE || 'Africa/Kigali';
+const TZ_LABEL = TZ === 'Africa/Kigali' ? 'CAT' : TZ;
+function fmtDateTime(iso) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+    .formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute} ${TZ_LABEL}`;
+}
 const fmtDay = (d) => { if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return `${String(dd).padStart(2, '0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m - 1]} ${y}`; };
 
 function renderPage(out) {
@@ -196,7 +204,7 @@ function renderPage(out) {
     ['Medicine', [b.brandName, b.genericName && b.strength ? `${b.genericName} ${b.strength}` : b.drugName].filter(Boolean).join(' · ')],
     ['Form', [b.dosageForm, b.packSize].filter(Boolean).join(' · ')], ['Manufacturer', b.manufacturer],
     ['Batch', b.batchNo], ['Expiry', fmtDay(b.expiryDate)],
-    ...(out.serial ? [['Pack serial', out.serial.value], ['Dispensed', out.serial.dispensedAt ? new Date(out.serial.dispensedAt).toUTCString().replace(' GMT', ' UTC') : 'No']] : []),
+    ...(out.serial ? [['Pack serial', out.serial.value], ['Dispensed', out.serial.dispensedAt ? fmtDateTime(out.serial.dispensedAt) : 'No']] : []),
   ].filter(([, v]) => v) : [];
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>${esc(label)} · PharmaTrace</title>
@@ -210,7 +218,7 @@ h1{margin:0 0 4px;font-size:22px}p{margin:0}dl{margin:16px 0 0}dt{font-size:12px
 <div class="verdict" role="status"><div class="icon">${icon}</div><div><h1>${esc(label)}</h1><p>${esc(out.message)}</p></div></div>
 ${rows.length ? `<div class="card" style="margin-top:16px"><dl>${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd${k === 'Batch' || k === 'Pack serial' ? ' class="mono"' : ''}>${esc(v)}</dd>`).join('')}</dl></div>` : ''}
 ${out.scope === 'batch' ? '<p class="note">This code identifies a whole batch, not a single pack. Scan the code printed on the pack itself to check that pack.</p>' : ''}
-<p class="note">Checked ${esc(new Date(out.checkedAt).toUTCString().replace(' GMT', ' UTC'))} against: ${esc(out.source)}.</p>
+<p class="note">Checked ${esc(fmtDateTime(out.checkedAt))} against: ${esc(out.source)}.</p>
 </main></body></html>`;
 }
 
