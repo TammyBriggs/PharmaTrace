@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
-import '../scan/scan_home_screen.dart';
 import '../../core/main_navigation.dart';
 import '../auth/login_screen.dart';
 import '../../core/auth_manager.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({Key? key}) : super(key: key);
+  const OnboardingScreen({super.key});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -108,12 +107,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           height: 50,
                           child: ElevatedButton(
                             onPressed: () async {
+                              final navigator = Navigator.of(context);
                               await AuthManager().completeOnboarding();
 
                               if (!mounted) return;
 
-                              Navigator.pushReplacement(
-                                context,
+                              navigator.pushReplacement(
                                 MaterialPageRoute(
                                   builder: (context) => const MainNavigationScreen(),
                                 ),

@@ -8,6 +8,7 @@ import '../../data/models/batch_model.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/scan_history_manager.dart';
 import '../profile/report_product_screen.dart';
+import 'batch_history_screen.dart';
 
 class VerificationResultScreen extends StatefulWidget {
   /// The exact scanned or typed code (a GS1 Digital Link).
@@ -18,10 +19,10 @@ class VerificationResultScreen extends StatefulWidget {
   final DrugBatch? saved;
 
   const VerificationResultScreen({
-    Key? key,
+    super.key,
     required this.code,
     this.saved,
-  }) : super(key: key);
+  });
 
   @override
   State<VerificationResultScreen> createState() => _VerificationResultScreenState();
@@ -33,6 +34,10 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
   bool _loading = false;
   bool _fromHistory = false;
   bool _dispensing = false;
+
+  /// The code being checked. Starts as the scanned or typed text and may gain a GTIN
+  /// when a batch number was typed alone and the person picks the right product.
+  late String _code = widget.code;
 
   @override
   void initState() {
@@ -52,7 +57,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
     });
 
     try {
-      final batch = await ApiService.verify(widget.code);
+      final batch = await ApiService.verify(_code);
       if (!mounted) return;
       setState(() {
         _batch = batch;
@@ -60,6 +65,20 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
         _loading = false;
       });
       await ScanHistoryManager().addScan(batch);
+    } on AmbiguousBatchException catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      final gtin = await _chooseProduct(e);
+      if (!mounted) return;
+      if (gtin == null) {
+        if (_batch == null) {
+          setState(() => _error = 'Add the GTIN printed on the pack, or pick the product, to continue.');
+        }
+        return;
+      }
+      // Re-run with the chosen product's GTIN in front of the batch number.
+      _code = '/01/$gtin$_code'; // an ambiguous code never had a GTIN
+      await _load();
     } catch (e) {
       if (!mounted) return;
       final message = e is ApiException ? e.message : 'Something went wrong. Please try again.';
@@ -72,6 +91,38 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     }
+  }
+
+  Future<String?> _chooseProduct(AmbiguousBatchException e) {
+    final c = context.colors;
+    return showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Which product is it?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 4),
+              Text(e.message, style: TextStyle(color: c.textSecondary, fontSize: 13)),
+              const SizedBox(height: 12),
+              for (final m in e.matches)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.medication_outlined, color: c.accent),
+                  title: Text(m.drugName),
+                  subtitle: Text('${m.manufacturer}\nGTIN ${m.gtin}'),
+                  isThreeLine: true,
+                  onTap: () => Navigator.pop(sheetContext, m.gtin),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _markDispensed(DrugBatch batch) async {
@@ -301,6 +352,26 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2, color: c.accent),
                 )
               : Text('Mark as Dispensed', style: TextStyle(color: c.accent, fontWeight: FontWeight.bold)),
+        ),
+      if (batch.gtin != null && batch.batchNo != null)
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 50),
+            side: BorderSide(color: c.border),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          icon: Icon(Icons.timeline, color: c.accent),
+          label: Text('View batch history', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BatchHistoryScreen(
+                gtin: batch.gtin!,
+                batchNo: batch.batchNo!,
+                title: batch.title,
+              ),
+            ),
+          ),
         ),
       if (isPharmacist)
         ElevatedButton(

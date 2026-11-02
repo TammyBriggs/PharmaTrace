@@ -10,11 +10,11 @@ class Skeleton extends StatelessWidget {
   final double borderRadius;
 
   const Skeleton({
-    Key? key,
+    super.key,
     this.height,
     this.width,
     this.borderRadius = 8.0, // Default border radius
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +37,7 @@ class Skeleton extends StatelessWidget {
 /// A pre-configured skeleton layout specifically for the Medicine Cards.
 /// Simulates the layout of the 'Reusable information patterns' in the design.
 class MedicineCardSkeleton extends StatelessWidget {
-  const MedicineCardSkeleton({Key? key}) : super(key: key);
+  const MedicineCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {

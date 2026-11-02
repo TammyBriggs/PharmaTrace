@@ -13,7 +13,7 @@ class ReportProductScreen extends StatefulWidget {
   /// Pre-fills the batch number when reporting straight from a scan result.
   final String? initialBatchNo;
 
-  const ReportProductScreen({Key? key, this.initialBatchNo}) : super(key: key);
+  const ReportProductScreen({super.key, this.initialBatchNo});
 
   @override
   State<ReportProductScreen> createState() => _ReportProductScreenState();

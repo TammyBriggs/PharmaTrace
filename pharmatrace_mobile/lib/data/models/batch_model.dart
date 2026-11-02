@@ -117,8 +117,16 @@ class DrugBatch {
   factory DrugBatch.fromApi(Map<String, dynamic> json, String code) {
     final b = _map(json['batch']);
     final s = _map(json['serial']);
+    // When the register recognised the batch, keep its canonical code (with the GTIN) even if
+    // the person typed only a batch number. That lets "Mark as dispensed" and "Check again" work.
+    final gtin = _str(b['gtin']);
+    final batchNo = _str(b['batchNo']);
+    final serial = _str(s['value']);
+    final canonical = (gtin != null && batchNo != null)
+        ? '/01/$gtin/10/${Uri.encodeComponent(batchNo)}${serial != null ? '/21/$serial' : ''}'
+        : code;
     return DrugBatch(
-      code: code,
+      code: canonical,
       verdict: _parseVerdict(_str(json['verdict']) ?? 'not_found'),
       message: _str(json['message']) ?? '',
       checkedAt: DateTime.tryParse(_str(json['checkedAt']) ?? '') ?? DateTime.now().toUtc(),

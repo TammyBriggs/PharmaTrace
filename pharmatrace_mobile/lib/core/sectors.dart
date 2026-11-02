@@ -1,19 +1,12 @@
-/// Kigali City's 35 sectors by district.
+/// Gasabo District's 15 sectors (the pilot area).
 /// Pharmacists pick from this list so that scans and reports group cleanly by sector
 /// in the regulator dashboard instead of depending on how someone typed a name.
+/// To widen the pilot later, add another district to this map and nothing else changes.
 const Map<String, List<String>> kigaliSectorsByDistrict = {
   'Gasabo': [
     'Bumbogo', 'Gatsata', 'Gikomero', 'Gisozi', 'Jabana', 'Jali', 'Kacyiru',
     'Kimihurura', 'Kimironko', 'Kinyinya', 'Ndera', 'Nduba', 'Remera',
     'Rusororo', 'Rutunga',
-  ],
-  'Kicukiro': [
-    'Gahanga', 'Gatenga', 'Gikondo', 'Kagarama', 'Kanombe', 'Kicukiro',
-    'Kigarama', 'Masaka', 'Niboye', 'Nyarugunga',
-  ],
-  'Nyarugenge': [
-    'Gitega', 'Kanyinya', 'Kigali', 'Kimisagara', 'Mageragere', 'Muhima',
-    'Nyakabanda', 'Nyamirambo', 'Nyarugenge', 'Rwezamenyo',
   ],
 };
 

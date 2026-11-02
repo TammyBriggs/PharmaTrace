@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../sectors.dart';
 import '../theme.dart';
 
-/// Pick one of Kigali's sectors. The district is shown next to each name.
+/// Pick one of the pilot district's sectors. The district name is shown next to each
+/// sector only when more than one district is configured.
 class SectorDropdown extends StatelessWidget {
   final String? value;
   final ValueChanged<String?> onChanged;
@@ -10,17 +11,18 @@ class SectorDropdown extends StatelessWidget {
   final String label;
 
   const SectorDropdown({
-    Key? key,
+    super.key,
     required this.value,
     required this.onChanged,
     this.enabled = true,
     this.label = 'Sector',
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final sectors = allSectors();
+    final showDistrict = kigaliSectorsByDistrict.length > 1;
 
     return InputDecorator(
       isEmpty: value == null,
@@ -45,10 +47,11 @@ class SectorDropdown extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(child: Text(sector)),
-                    Text(
-                      districtOfSector(sector) ?? '',
-                      style: TextStyle(color: c.textSecondary, fontSize: 12),
-                    ),
+                    if (showDistrict)
+                      Text(
+                        districtOfSector(sector) ?? '',
+                        style: TextStyle(color: c.textSecondary, fontSize: 12),
+                      ),
                   ],
                 ),
               ),

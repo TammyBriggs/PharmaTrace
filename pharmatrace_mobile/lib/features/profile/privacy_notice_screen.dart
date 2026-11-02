@@ -3,7 +3,7 @@ import '../../core/theme.dart';
 
 /// Plain-language summary of what the app collects and why.
 class PrivacyNoticeScreen extends StatelessWidget {
-  const PrivacyNoticeScreen({Key? key}) : super(key: key);
+  const PrivacyNoticeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

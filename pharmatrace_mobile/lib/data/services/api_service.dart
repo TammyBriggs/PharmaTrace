@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/auth_manager.dart';
 import '../../core/config.dart';
+import '../models/batch_history.dart';
 import '../models/batch_model.dart';
 
 /// An error with a message that is safe to show to the user.
@@ -17,6 +18,18 @@ class ApiException implements Exception {
   final String? code;
 
   ApiException(this.message, {this.status, this.code});
+
+  @override
+  String toString() => message;
+}
+
+/// The batch number typed by hand is used by more than one product.
+/// The person picks theirs from [matches] and the check runs again with its GTIN.
+class AmbiguousBatchException implements Exception {
+  final String message;
+  final List<({String gtin, String drugName, String manufacturer})> matches;
+
+  AmbiguousBatchException(this.message, this.matches);
 
   @override
   String toString() => message;
@@ -34,7 +47,7 @@ class ApiService {
     try {
       response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true'},
         body: jsonEncode({
           'contact': contact,
           'password': password,
@@ -108,7 +121,7 @@ class ApiService {
     try {
       return await request().timeout(_timeout);
     } on TimeoutException {
-      throw ApiException('The server took too long to respond. Please try again.');
+      throw ApiException('The server at ${Uri.parse(baseUrl).host} took too long to respond. Please try again.');
     } on SocketException {
       throw ApiException(_offline);
     } on http.ClientException {
@@ -135,23 +148,50 @@ class ApiService {
   }
 
   static Map<String, String> _authHeaders({bool json = false}) {
-    final headers = <String, String>{};
+    // Lets requests through ngrok's free-plan browser warning page when testing via a tunnel.
+    final headers = <String, String>{'ngrok-skip-browser-warning': 'true'};
     final token = AuthManager().jwtToken;
     if (token != null && token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
     if (json) headers['Content-Type'] = 'application/json';
     return headers;
   }
 
+  /// A code typed without a GTIN looks like "/10/RW-0412" or "/10/RW-0412/21/ABCD2345EFGH".
+  static final RegExp _noGtin = RegExp(r'^/10/([^/]+)(?:/21/([^/]+))?$');
+
   /// Checks a scanned or typed pack/batch code against the register.
   /// Works for everyone; if a pharmacist is signed in, the server also records
   /// who scanned and from which sector.
+  /// Throws [AmbiguousBatchException] when a GTIN-less batch number matches several products.
   static Future<DrugBatch> verify(String code) async {
-    final uri = Uri.parse('$baseUrl/verify').replace(queryParameters: {'code': code});
+    final m = _noGtin.firstMatch(code);
+    final query = m == null
+        ? {'code': code}
+        : {
+            'batch': Uri.decodeComponent(m.group(1)!),
+            if (m.group(2) != null) 'serial': m.group(2)!,
+          };
+    final uri = Uri.parse('$baseUrl/verify').replace(queryParameters: query);
     final response = await _send(() => http.get(uri, headers: _authHeaders()));
 
     if (response.statusCode == 200) {
       try {
         final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        if (decoded['ambiguous'] == true) {
+          final list = decoded['matches'] is List ? decoded['matches'] as List : const [];
+          throw AmbiguousBatchException(
+            decoded['message']?.toString() ?? 'More than one product uses this batch number.',
+            [
+              for (final x in list)
+                if (x is Map)
+                  (
+                    gtin: x['gtin']?.toString() ?? '',
+                    drugName: x['drugName']?.toString() ?? 'Unknown product',
+                    manufacturer: x['manufacturer']?.toString() ?? '',
+                  ),
+            ],
+          );
+        }
         return DrugBatch.fromApi(decoded, code);
       } on FormatException {
         throw ApiException('The server returned an invalid response.');
@@ -171,6 +211,25 @@ class ApiService {
           status: response.statusCode,
         );
     }
+  }
+
+  /// The batch's provenance timeline (submitted, approved, flagged, ...). Public, no sign-in needed.
+  static Future<BatchHistory> batchHistory({required String gtin, required String batchNo}) async {
+    final uri = Uri.parse('$baseUrl/verify/history').replace(queryParameters: {'gtin': gtin, 'batch': batchNo});
+    final response = await _send(() => http.get(uri, headers: _authHeaders()));
+
+    if (response.statusCode == 200) {
+      try {
+        return BatchHistory.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+      } on FormatException {
+        throw ApiException('The server returned an invalid response.');
+      }
+    }
+    final err = _readError(response);
+    throw ApiException(
+      err.message ?? 'Could not load the batch history. (Error ${response.statusCode})',
+      status: response.statusCode,
+    );
   }
 
   /// Records that a pack was sold. Pharmacists only. Returns when the server stored it.

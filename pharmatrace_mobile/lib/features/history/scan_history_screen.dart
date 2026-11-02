@@ -7,7 +7,7 @@ import '../../data/services/scan_history_manager.dart';
 import '../verification/verification_result_screen.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
-  const ScanHistoryScreen({Key? key}) : super(key: key);
+  const ScanHistoryScreen({super.key});
 
   @override
   State<ScanHistoryScreen> createState() => _ScanHistoryScreenState();

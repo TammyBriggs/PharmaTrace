@@ -5,7 +5,7 @@ import '../../core/widgets/brand_logo.dart';
 import '../verification/verification_result_screen.dart';
 
 class ScanHomeScreen extends StatefulWidget {
-  const ScanHomeScreen({Key? key}) : super(key: key);
+  const ScanHomeScreen({super.key});
 
   @override
   State<ScanHomeScreen> createState() => _ScanHomeScreenState();
@@ -323,30 +323,34 @@ class _ManualEntrySheet extends StatefulWidget {
 }
 
 class _ManualEntrySheetState extends State<_ManualEntrySheet> {
-  final TextEditingController _gtin = TextEditingController();
   final TextEditingController _batch = TextEditingController();
+  final TextEditingController _gtin = TextEditingController();
   final TextEditingController _serial = TextEditingController();
   String? _error;
 
   @override
   void dispose() {
-    _gtin.dispose();
     _batch.dispose();
+    _gtin.dispose();
     _serial.dispose();
     super.dispose();
   }
 
   void _submit() {
-    final gtin = _gtin.text.trim();
     final batch = _batch.text.trim().toUpperCase();
+    final gtin = _gtin.text.trim();
     final serial = _serial.text.trim().toUpperCase();
 
-    if (!RegExp(r'^\d{14}$').hasMatch(gtin)) {
-      setState(() => _error = 'The GTIN is 14 digits.');
-      return;
-    }
     if (batch.isEmpty) {
       setState(() => _error = 'Enter the batch number printed on the pack.');
+      return;
+    }
+    if (!RegExp(r'^[A-Z0-9][A-Z0-9\-/]{2,39}$').hasMatch(batch)) {
+      setState(() => _error = 'The batch number uses letters, numbers and dashes only.');
+      return;
+    }
+    if (gtin.isNotEmpty && !RegExp(r'^\d{14}$').hasMatch(gtin)) {
+      setState(() => _error = 'The GTIN is 14 digits. Leave it empty if you are not sure.');
       return;
     }
     if (serial.isNotEmpty && !RegExp(r'^[A-Z0-9]{1,20}$').hasMatch(serial)) {
@@ -354,8 +358,8 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
       return;
     }
 
-    final code = '/01/$gtin/10/${Uri.encodeComponent(batch)}${serial.isEmpty ? '' : '/21/$serial'}';
-    Navigator.pop(context, code);
+    final tail = '/10/${Uri.encodeComponent(batch)}${serial.isEmpty ? '' : '/21/$serial'}';
+    Navigator.pop(context, gtin.isEmpty ? tail : '/01/$gtin$tail');
   }
 
   @override
@@ -379,27 +383,30 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Use the details printed on the pack.',
+              'The batch number printed on the pack is enough.',
               style: TextStyle(color: c.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: _gtin,
-              keyboardType: TextInputType.number,
-              maxLength: 14,
+              controller: _batch,
+              textCapitalization: TextCapitalization.characters,
+              textInputAction: TextInputAction.next,
               decoration: InputDecoration(
-                labelText: 'GTIN (14 digits)',
-                counterText: '',
+                labelText: 'Batch number',
+                hintText: 'e.g. RW-2026-0523',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: _batch,
-              textCapitalization: TextCapitalization.characters,
+              controller: _gtin,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+              maxLength: 14,
               decoration: InputDecoration(
-                labelText: 'Batch number',
-                hintText: 'e.g. RW-2026-0523',
+                labelText: 'GTIN (optional)',
+                helperText: '14 digits. Helps if two products share a batch number.',
+                counterText: '',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
@@ -409,7 +416,7 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
               textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
                 labelText: 'Pack serial (optional)',
-                helperText: 'Leave empty to check the whole batch.',
+                helperText: 'Add it to check this exact pack. Leave empty to check the whole batch.',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
