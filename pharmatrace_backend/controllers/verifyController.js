@@ -127,18 +127,69 @@ function limiter(max = 60, windowMs = 60_000) {
 const partsFromRequest = (src) => {
   if (src.code) return parseDigitalLink(src.code);
   if (src.gtin && src.batch) return parseDigitalLink(`/01/${src.gtin}/10/${encodeURIComponent(src.batch)}${src.serial ? `/21/${src.serial}` : ''}`);
+  if (src.batch) {   // typed by hand with only a batch number (GTIN is optional)
+    const batchNo = String(src.batch).trim().toUpperCase().slice(0, 60);
+    const serial = src.serial ? String(src.serial).trim().toUpperCase().slice(0, 40) : null;
+    if (!/^[A-Z0-9][A-Z0-9\-/]{2,39}$/.test(batchNo) || (serial !== null && !/^[A-Z0-9]{1,20}$/.test(serial))) return null;
+    return { gtin: null, batchNo, serial };
+  }
   return null;
 };
 
 // ───────────────────────── GET /api/verify ─────────────────────────
 const verifyApi = async (req, res) => {
   try {
-    const parts = partsFromRequest(req.query);
+    let parts = partsFromRequest(req.query);
     if (!parts || !parts.batchNo) return res.status(400).json({ error: 'That is not a PharmaTrace pack code.' });
-    const r = await evaluate(parts);
-    await logScan(parts, r, req.query.code ?? `${req.query.gtin}/${req.query.batch}/${req.query.serial ?? ''}`, req.user?.id);
+
+    // Batch number only: batch numbers are unique per manufacturer, not globally, so find out whom it could be.
+    if (!parts.gtin) {
+      const found = (await pool.query(
+        `SELECT b.gtin, b.drug_name, m.name AS manufacturer FROM batches b JOIN manufacturers m ON m.id = b.manufacturer_id
+          WHERE b.batch_no = $1 AND b.status <> 'draft' ORDER BY b.created_at DESC LIMIT 6`, [parts.batchNo])).rows;
+      if (found.length > 1) {
+        return res.set('Cache-Control', 'no-store').status(200).json({
+          ambiguous: true,
+          message: 'More than one product uses this batch number. Choose yours, or add the GTIN printed on the pack.',
+          matches: found.map((r) => ({ gtin: r.gtin, drugName: r.drug_name, manufacturer: r.manufacturer })),
+        });
+      }
+      if (found.length === 1) parts = { ...parts, gtin: found[0].gtin };
+    }
+    const r = parts.gtin ? await evaluate(parts) : { verdict: 'not_found', row: null, source: 'database', chain: null };
+    await logScan(parts, r, req.query.code ?? `${req.query.gtin ?? ''}/${req.query.batch}/${req.query.serial ?? ''}`, req.user?.id);
     res.set('Cache-Control', 'no-store').status(200).json(present(r, parts));
   } catch (e) { console.error('Error in verify:', e.message); res.status(500).json({ error: 'Server error while verifying' }); }
+};
+
+// ───────────────────────── GET /api/verify/history (public provenance timeline) ─────────────────────────
+// The regulator dashboard's provenance timeline, minus the manufacturer's submission (the public timeline
+// starts at approval) and without staff names, reasons or internal notes. Oldest first.
+const statusAfter = (events) => {
+  let approvedOnce = false;
+  return events.map((e) => {
+    if (e.event === 'approved') { approvedOnce = true; return 'approved'; }
+    if (e.event === 'flagged') return 'flagged';
+    if (e.event === 'revoked') return 'revoked';
+    if (e.event === 'submitted') return 'pending';
+    return approvedOnce ? 'approved' : 'pending';   // flag_resolved / reinstated restore the earlier state
+  });
+};
+const verifyHistory = async (req, res) => {
+  try {
+    const parts = partsFromRequest(req.query);
+    if (!parts || !parts.batchNo || !parts.gtin) return res.status(400).json({ error: 'That is not a PharmaTrace batch code.' });
+    const row = await lookup({ gtin: parts.gtin, batchNo: parts.batchNo });
+    if (!row) return res.status(404).json({ error: 'No matching batch was found in the PharmaTrace register.' });
+    const ev = (await pool.query(
+      `SELECT e.event, e.tx_hash, to_char(e.block_time,'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS at
+         FROM batch_events e WHERE e.batch_uuid = $1 ORDER BY e.block_time, e.created_at`, [row.batch_uuid])).rows;
+    const after = statusAfter(ev);
+    res.set('Cache-Control', 'no-store').json({
+      batch: { batchNo: row.batch_no, drugName: row.drug_name },
+      events: ev.map((e, i) => ({ e, i })).filter(({ e }) => e.event !== 'submitted').map(({ e, i }) => ({ event: e.event, at: e.at, by: 'regulator', txHash: e.tx_hash, statusAfter: after[i] })),
+    });
+  } catch (e) { console.error('Error in verify history:', e.message); res.status(500).json({ error: 'Server error while loading the history' }); }
 };
 
 // ───────────────────────── POST /api/serials/dispense (pharmacist) ─────────────────────────
@@ -240,4 +291,4 @@ const verifyPage = async (req, res) => {
   }
 };
 
-module.exports = { verifyApi, dispense, verifyPage, optionalAuth, limiter, evaluate, dbVerdict };
+module.exports = { verifyApi, verifyHistory, dispense, verifyPage, optionalAuth, limiter, evaluate, dbVerdict };
