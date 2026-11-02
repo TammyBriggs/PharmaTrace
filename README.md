@@ -7,7 +7,7 @@ PharmaTrace is an anti-counterfeit medicine verification system for Rwanda. Manu
 | **Author** | Tamunotonye Briggs, African Leadership University (BSc Software Engineering, Low-Level Programming track) |
 | **Repository** | https://github.com/TammyBriggs/PharmaTrace |
 | **Walkthrough video** | _add link here_ |
-| **Technical report (PDF)** | _add link here_ |
+| **Technical report (PDF)** | [`docs/PharmaTrace_Technical_Report.pdf`](docs/PharmaTrace_Technical_Report.pdf) |
 | **Figma** | https://www.figma.com/design/i8k7qcRAaYYRulinorFO43/Untitled?node-id=3-1274 |
 
 ---
@@ -206,7 +206,9 @@ PharmaTrace/
 │   ├── core/                            # Theme, sectors, config, shared widgets
 │   ├── data/                            # Models and API service
 │   └── features/                        # scan, verification, history, profile, auth, onboarding
-└── docs/designs/                        # Figma exports
+└── docs/
+    ├── PharmaTrace_Technical_Report.pdf # Technical report
+    └── designs/                         # Figma exports
 ```
 
 ---
