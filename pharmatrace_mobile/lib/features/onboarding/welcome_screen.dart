@@ -27,7 +27,7 @@ class WelcomeScreen extends StatelessWidget {
                 'Verify with Confidence',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -35,7 +35,7 @@ class WelcomeScreen extends StatelessWidget {
               Text(
                 'Scan pharmaceuticals to view their complete, immutable ledger history.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),

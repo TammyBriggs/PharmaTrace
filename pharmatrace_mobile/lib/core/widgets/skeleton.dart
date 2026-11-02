@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import '../theme.dart';
 
 /// A reusable skeleton loader widget to display while data is being fetched.
 /// Uses the Shimmer package to create a smooth sweeping animation.
@@ -17,9 +18,10 @@ class Skeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: isDark ? const Color(0xFF374151) : Colors.grey[300]!,
+      highlightColor: isDark ? const Color(0xFF4B5563) : Colors.grey[100]!,
       child: Container(
         height: height,
         width: width,
@@ -43,9 +45,9 @@ class MedicineCardSkeleton extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       margin: const EdgeInsets.only(bottom: 16.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: context.colors.border),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,

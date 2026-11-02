@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
+import 'core/theme_controller.dart';
 import 'core/auth_manager.dart';
 import 'core/main_navigation.dart';
 import 'features/onboarding/splash_screen.dart';
-import 'data/services/scan_history_manager.dart';
 import 'data/services/scan_history_manager.dart';
 
 void main() async {
@@ -11,6 +11,7 @@ void main() async {
 
   await AuthManager().init();
   await ScanHistoryManager().init();
+  await ThemeController().init();
 
   runApp(const PharmaTraceApp());
 }
@@ -24,16 +25,22 @@ class PharmaTraceApp extends StatelessWidget {
     final bool startAtMain =
         AuthManager().hasCompletedOnboarding;
 
-    return MaterialApp(
-      title: 'PharmaTrace',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+    // Rebuilds the whole app when the light/dark switch in Settings changes.
+    return ListenableBuilder(
+      listenable: ThemeController(),
+      builder: (context, _) => MaterialApp(
+        title: 'PharmaTrace',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeController().mode,
 
-      // Returning users skip the splash/onboarding flow.
-      // New users start at the splash screen.
-      home: startAtMain
-          ? const MainNavigationScreen()
-          : const SplashScreen(),
+        // Returning users skip the splash/onboarding flow.
+        // New users start at the splash screen.
+        home: startAtMain
+            ? const MainNavigationScreen()
+            : const SplashScreen(),
+      ),
     );
   }
 }

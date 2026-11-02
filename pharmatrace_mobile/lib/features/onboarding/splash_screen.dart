@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
+import '../../core/widgets/brand_logo.dart';
 import 'welcome_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -21,13 +23,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    // Controls the size variation (e.g., scale from 90% to 110%)
-    _animation = Tween<double>(begin: 0.9, end: 1.1).animate(
+    // Gentle size variation (scale from 95% to 105%)
+    _animation = Tween<double>(begin: 0.95, end: 1.05).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
     // Route to Welcome screen after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const WelcomeScreen()),
@@ -46,13 +49,24 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
-        child: ScaleTransition(
-          scale: _animation,
-          child: Image.asset(
-            'assets/images/splash_logo.png', // Ensure this file exists
-            width: 150, // Change this value to adjust your logo size
-            height: 150,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Same logo as the web dashboard, matching the native splash screen.
+            ScaleTransition(
+              scale: _animation,
+              child: const BrandLogo(width: 120),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'PharmaTrace',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w600,
+                color: context.colors.accent,
+              ),
+            ),
+          ],
         ),
       ),
     );

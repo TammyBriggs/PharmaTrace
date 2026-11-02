@@ -28,16 +28,23 @@ dev_dependencies:
   flutter_native_splash: ^2.3.6
   flutter_lints: ^5.0.0
 
-# Configuration for the splash screen must be at the root level
+# Configuration for the splash screen must be at the root level.
+# Logo: the same shield mark as the web dashboard. After changing anything here run:
+#   dart run flutter_native_splash:create
 flutter_native_splash:
   color: "#FFFFFF"
   image: assets/images/splash_logo.png
+  color_dark: "#111827"
+  image_dark: assets/images/splash_logo_dark.png
   android_12:
-    image: assets/images/splash_logo.png
+    color: "#FFFFFF"
+    image: assets/images/splash_logo_android12.png
     icon_background_color: "#FFFFFF"
+    color_dark: "#111827"
+    image_dark: assets/images/splash_logo_android12_dark.png
+    icon_background_color_dark: "#111827"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - assets/data/

@@ -63,14 +63,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             Container(
                           height: 250,
                           decoration: BoxDecoration(
-                            color: Colors.grey[200],
+                            color: context.colors.neutralBg,
                             shape: BoxShape.circle,
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Icon(
                               Icons.image_not_supported,
                               size: 50,
-                              color: Colors.grey,
+                              color: context.colors.textSecondary,
                             ),
                           ),
                         ),
@@ -88,8 +88,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Text(
                         _onboardingData[index]["text"]!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
+                        style: TextStyle(
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -128,8 +128,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           height: 50,
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: AppTheme.primaryColor,
+                              side: BorderSide(
+                                color: context.colors.accent,
                                 width: 1.5,
                               ),
                               shape: RoundedRectangleBorder(
@@ -142,21 +142,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 MaterialPageRoute(builder: (context) => const LoginScreen()),
                               );
                             },
-                            child: const Text(
+                            child: Text(
                               "I'm a pharmacist - sign in",
                               style: TextStyle(
-                                color: AppTheme.primaryColor,
+                                color: context.colors.accent,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Patients can scan without signing in.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: AppTheme.textSecondary,
+                            color: context.colors.textSecondary,
                             fontSize: 12,
                           ),
                         ),
@@ -174,8 +174,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               width: _currentPage == index ? 24 : 8,
                               decoration: BoxDecoration(
                                 color: _currentPage == index
-                                    ? AppTheme.primaryColor
-                                    : AppTheme.borderColor,
+                                    ? context.colors.accent
+                                    : context.colors.border,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),

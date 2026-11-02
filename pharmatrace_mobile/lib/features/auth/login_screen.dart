@@ -106,10 +106,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Sign in to report anomalies and manage inventory.',
                   style: TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -134,8 +134,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                   Text(
                     _errorMessage!,
-                    style: const TextStyle(
-                      color: AppTheme.statusFlagged,
+                    style: TextStyle(
+                      color: context.colors.dangerFg,
                     ),
                   ),
                 ],

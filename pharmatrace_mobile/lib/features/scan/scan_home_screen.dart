@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/brand_logo.dart';
 import '../verification/verification_result_screen.dart';
 
 class ScanHomeScreen extends StatefulWidget {
@@ -12,12 +13,11 @@ class ScanHomeScreen extends StatefulWidget {
 
 class _ScanHomeScreenState extends State<ScanHomeScreen> {
   final MobileScannerController _cameraController = MobileScannerController();
-  final TextEditingController _manualInputController = TextEditingController();
 
   bool _isProcessing = false;
 
-  void _processBatch(String batchId) {
-    if (_isProcessing || batchId.isEmpty) return;
+  void _processCode(String code) {
+    if (_isProcessing || code.isEmpty) return;
 
     setState(() => _isProcessing = true);
 
@@ -26,7 +26,7 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VerificationResultScreen(batchId: batchId),
+        builder: (context) => VerificationResultScreen(code: code),
       ),
     ).then((_) {
       if (!mounted) return; // Safely handles widget disposal!
@@ -36,10 +36,8 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
     });
   }
 
-  void _showManualEntrySheet() {
-    _manualInputController.clear();
-
-    showModalBottomSheet(
+  Future<void> _showManualEntrySheet() async {
+    final String? code = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -47,72 +45,23 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
           top: Radius.circular(24),
         ),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 24,
-          right: 24,
-          top: 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter batch code manually',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _manualInputController,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. RW-2024-0417',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    final batchId = _manualInputController.text.trim();
-
-                    if (batchId.isEmpty) return;
-
-                    Navigator.pop(context);
-                    _processBatch(batchId);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(100, 50),
-                  ),
-                  child: const Text('Verify'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+      builder: (sheetContext) => const _ManualEntrySheet(),
     );
+
+    if (code != null && mounted) {
+      _processCode(code);
+    }
   }
 
   @override
   void dispose() {
     _cameraController.dispose();
-    _manualInputController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Scaffold(
       body: Stack(
         children: [
@@ -122,7 +71,7 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
               final List<Barcode> barcodes = capture.barcodes;
 
               if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                _processBatch(barcodes.first.rawValue!.trim());
+                _processCode(barcodes.first.rawValue!.trim());
               }
             },
           ),
@@ -137,20 +86,16 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: c.surface,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Row(
                     children: [
-                      Icon(
-                        Icons.verified_user_outlined,
-                        color: AppTheme.primaryColor,
-                        size: 20,
-                      ),
+                      BrandLogo(width: 24),
                       SizedBox(width: 8),
                       Text(
                         'PharmaTrace',
@@ -163,13 +108,13 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                   ),
                 ),
                 Container(
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: c.surface, borderRadius: BorderRadius.circular(8)),
                   child: ValueListenableBuilder<MobileScannerState>(
                     valueListenable: _cameraController, // Listen to the controller directly
                     builder: (context, state, child) {
                       final isOn = state.torchState == TorchState.on;
                       return IconButton(
-                        icon: Icon(isOn ? Icons.flash_on : Icons.flash_off, color: AppTheme.primaryColor),
+                        icon: Icon(isOn ? Icons.flash_on : Icons.flash_off, color: c.accent),
                         onPressed: () => _cameraController.toggleTorch(),
                       );
                     },
@@ -187,12 +132,12 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: c.surface,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Column(
+              child: Column(
                 children: [
-                  Text(
+                  const Text(
                     'Point at the QR code on the\nmedicine box',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -200,11 +145,11 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     'Keep the code inside the frame.',
                     style: TextStyle(
-                      color: AppTheme.textSecondary,
+                      color: c.textSecondary,
                     ),
                   ),
                 ],
@@ -233,11 +178,11 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                         decoration: BoxDecoration(
                           border: Border(
                             top: BorderSide(
-                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.8),
                               width: 3,
                             ),
                             left: BorderSide(
-                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.8),
                               width: 3,
                             ),
                           ),
@@ -255,11 +200,11 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                         decoration: BoxDecoration(
                           border: Border(
                             top: BorderSide(
-                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.8),
                               width: 3,
                             ),
                             right: BorderSide(
-                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.8),
                               width: 3,
                             ),
                           ),
@@ -277,11 +222,11 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.8),
                               width: 3,
                             ),
                             left: BorderSide(
-                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.8),
                               width: 3,
                             ),
                           ),
@@ -299,11 +244,11 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.8),
                               width: 3,
                             ),
                             right: BorderSide(
-                              color: AppTheme.primaryColor.withOpacity(0.8),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.8),
                               width: 3,
                             ),
                           ),
@@ -326,35 +271,35 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: c.surface,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.keyboard_outlined,
-                          color: AppTheme.primaryColor,
+                          color: c.accent,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
-                          'Enter batch code manually',
+                          'Enter code manually',
                           style: TextStyle(
-                            color: AppTheme.primaryColor,
+                            color: c.accent,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'Scan the packaging, not a loose tablet.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppTheme.textSecondary,
+                        color: c.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -364,6 +309,119 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Typed fallback for when a QR code will not scan: GTIN + batch (+ pack serial).
+class _ManualEntrySheet extends StatefulWidget {
+  const _ManualEntrySheet();
+
+  @override
+  State<_ManualEntrySheet> createState() => _ManualEntrySheetState();
+}
+
+class _ManualEntrySheetState extends State<_ManualEntrySheet> {
+  final TextEditingController _gtin = TextEditingController();
+  final TextEditingController _batch = TextEditingController();
+  final TextEditingController _serial = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _gtin.dispose();
+    _batch.dispose();
+    _serial.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final gtin = _gtin.text.trim();
+    final batch = _batch.text.trim().toUpperCase();
+    final serial = _serial.text.trim().toUpperCase();
+
+    if (!RegExp(r'^\d{14}$').hasMatch(gtin)) {
+      setState(() => _error = 'The GTIN is 14 digits.');
+      return;
+    }
+    if (batch.isEmpty) {
+      setState(() => _error = 'Enter the batch number printed on the pack.');
+      return;
+    }
+    if (serial.isNotEmpty && !RegExp(r'^[A-Z0-9]{1,20}$').hasMatch(serial)) {
+      setState(() => _error = 'The pack serial uses letters and numbers only.');
+      return;
+    }
+
+    final code = '/01/$gtin/10/${Uri.encodeComponent(batch)}${serial.isEmpty ? '' : '/21/$serial'}';
+    Navigator.pop(context, code);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 24,
+        right: 24,
+        top: 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter code manually',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Use the details printed on the pack.',
+              style: TextStyle(color: c.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _gtin,
+              keyboardType: TextInputType.number,
+              maxLength: 14,
+              decoration: InputDecoration(
+                labelText: 'GTIN (14 digits)',
+                counterText: '',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _batch,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'Batch number',
+                hintText: 'e.g. RW-2026-0523',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _serial,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'Pack serial (optional)',
+                helperText: 'Leave empty to check the whole batch.',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(_error!, style: TextStyle(color: c.dangerFg, fontSize: 13)),
+            ],
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _submit, child: const Text('Verify')),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }

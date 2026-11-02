@@ -13,7 +13,7 @@ class AuthManager {
   bool hasCompletedOnboarding = false;
   String userName = "Guest User";
   String profilePicPath = "";
-  String pharmacistSector = "Remera sector";
+  String pharmacistSector = "";
   String? jwtToken;
 
   Future<void> init() async {
@@ -22,7 +22,7 @@ class AuthManager {
     hasCompletedOnboarding = _prefs.getBool('hasCompletedOnboarding') ?? false;
     userName = _prefs.getString('userName') ?? (isPharmacist ? "Pharmacist Account" : "Patient Account");
     profilePicPath = _prefs.getString('profilePicPath') ?? "";
-    pharmacistSector = _prefs.getString('pharmacistSector') ?? "Remera sector";
+    pharmacistSector = _prefs.getString('pharmacistSector') ?? "";
     jwtToken = _prefs.getString('jwtToken');
   }
 

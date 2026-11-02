@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../core/theme.dart';
-import '../../features/scan/scan_home_screen.dart';
-import '../../features/history/scan_history_screen.dart';
+import '../features/scan/scan_home_screen.dart';
+import '../features/history/scan_history_screen.dart';
 import '../features/profile/pharmacist_profile_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -26,7 +25,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
         final now = DateTime.now();
@@ -49,10 +48,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         body: _screens[_selectedIndex],
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
-          selectedItemColor: AppTheme.primaryColor,
-          unselectedItemColor: AppTheme.textSecondary,
-          backgroundColor: Colors.white,
-          type: BottomNavigationBarType.fixed,
           onTap: (index) => setState(() => _selectedIndex = index),
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),

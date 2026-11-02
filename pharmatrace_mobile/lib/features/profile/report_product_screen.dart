@@ -3,29 +3,30 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/auth_manager.dart';
+import '../../core/sectors.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/sector_dropdown.dart';
 import '../../data/services/api_service.dart';
 
 class ReportProductScreen extends StatefulWidget {
-  const ReportProductScreen({Key? key}) : super(key: key);
+  /// Pre-fills the batch number when reporting straight from a scan result.
+  final String? initialBatchNo;
+
+  const ReportProductScreen({Key? key, this.initialBatchNo}) : super(key: key);
 
   @override
-  State<ReportProductScreen> createState() =>
-      _ReportProductScreenState();
+  State<ReportProductScreen> createState() => _ReportProductScreenState();
 }
 
 class _ReportProductScreenState extends State<ReportProductScreen> {
   final ImagePicker _picker = ImagePicker();
 
-  // Controllers for the report form.
-  final TextEditingController _locationController =
-      TextEditingController(text: 'Remera');
+  late final TextEditingController _batchController;
+  final TextEditingController _notesController = TextEditingController();
 
-  final TextEditingController _batchController =
-      TextEditingController();
-
-  final TextEditingController _notesController =
-      TextEditingController();
+  // The pharmacy's sector, starting from the one on the pharmacist's profile.
+  String? _sector;
 
   // Store the temporary path of the selected packaging photo.
   String? _imagePath;
@@ -33,18 +34,27 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    _batchController = TextEditingController(text: widget.initialBatchNo ?? '');
+    _sector = normalizeSector(AuthManager().pharmacistSector);
+  }
+
+  @override
   void dispose() {
-    _locationController.dispose();
     _batchController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   // Let the user choose between taking a photo and selecting one
   // from the gallery.
   Future<void> _pickImage() async {
-    final ImageSource? source =
-        await showModalBottomSheet<ImageSource>(
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (sheetContext) => SafeArea(
         child: Wrap(
@@ -53,33 +63,18 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
               padding: EdgeInsets.all(16),
               child: Text(
                 'Add packaging photo',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
             ListTile(
-              leading: const Icon(
-                Icons.camera_alt_outlined,
-                color: AppTheme.primaryColor,
-              ),
+              leading: Icon(Icons.camera_alt_outlined, color: sheetContext.colors.accent),
               title: const Text('Take a photo'),
-              onTap: () => Navigator.pop(
-                sheetContext,
-                ImageSource.camera,
-              ),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(
-                Icons.photo_library_outlined,
-                color: AppTheme.primaryColor,
-              ),
+              leading: Icon(Icons.photo_library_outlined, color: sheetContext.colors.accent),
               title: const Text('Choose from gallery'),
-              onTap: () => Navigator.pop(
-                sheetContext,
-                ImageSource.gallery,
-              ),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
             ),
           ],
         ),
@@ -89,114 +84,80 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
     if (source == null || !mounted) return;
 
     try {
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        imageQuality: 85,
-      );
+      final XFile? image = await _picker.pickImage(source: source, imageQuality: 85);
 
       if (image != null && mounted) {
-        setState(() {
-          _imagePath = image.path;
-        });
+        setState(() => _imagePath = image.path);
       }
     } catch (e) {
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Unable to select the photo. Please try again.',
-          ),
-        ),
-      );
+      _toast('Unable to select the photo. Please try again.');
     }
   }
 
   // Submit the report and its optional packaging photo to the backend.
   Future<void> _submitReport() async {
-    final batchId = _batchController.text.trim();
-    final location = _locationController.text.trim();
+    final batchId = _batchController.text.trim().toUpperCase();
     final notes = _notesController.text.trim();
 
     if (batchId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the batch code.'),
-        ),
-      );
+      _toast('Please enter the batch number.');
       return;
     }
-
     if (notes.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please provide details about the report.'),
-        ),
-      );
+      _toast('Please provide details about the report.');
+      return;
+    }
+    if (_sector == null) {
+      _toast('Please choose the pharmacy sector.');
       return;
     }
 
-    if (location.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the pharmacy location.'),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isSubmitting = true;
-    });
+    setState(() => _isSubmitting = true);
 
     try {
-
-    await ApiService.submitReport(
-      batchId,
-      location,
-      notes,
-      _imagePath,
-    );
+      await ApiService.submitReport(batchId, _sector!, notes, _imagePath);
 
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Report submitted successfully.'),
-        ),
-      );
-
+      _toast('Report submitted successfully.');
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-
-      final errorMessage =
-          e.toString().replaceFirst('Exception: ', '');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to submit report: $errorMessage'),
-        ),
-      );
+      final message = e is ApiException ? e.message : 'Something went wrong. Please try again.';
+      _toast('Failed to submit report: $message');
     } finally {
       if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
+        setState(() => _isSubmitting = false);
       }
     }
   }
 
+  Widget _label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+    );
+  }
+
+  Widget _hint(BuildContext context, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        text,
+        style: TextStyle(color: context.colors.textSecondary, fontSize: 12, height: 1.4),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Report suspicious drug',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: false,
       ),
@@ -205,32 +166,18 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'PHARMACIST REPORT • SIGNED IN',
-              style: TextStyle(
-                color: AppTheme.primaryColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: c.accent, fontWeight: FontWeight.bold, fontSize: 12),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Help flag a product that needs review.',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: c.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 24),
 
-            const Text(
-              'Packaging photo',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 8),
+            _label('Packaging photo'),
 
             // Tap this container to take a photo or choose one
             // from the device gallery.
@@ -241,9 +188,8 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(
-                    color: AppTheme.borderColor,
-                  ),
+                  color: c.surface,
+                  border: Border.all(color: c.border),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -251,38 +197,26 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.camera_alt_outlined,
-                          color: AppTheme.primaryColor,
-                        ),
+                        Icon(Icons.camera_alt_outlined, color: c.accent),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Add packaging photo',
-                                style: TextStyle(
-                                  color: AppTheme.primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: TextStyle(color: c.accent, fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 'Show the QR code and batch label.',
-                                style: TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 12,
-                                ),
+                                style: TextStyle(color: c.textSecondary, fontSize: 12),
                               ),
                             ],
                           ),
                         ),
                         Icon(
-                          _imagePath == null
-                              ? Icons.add
-                              : Icons.edit_outlined,
-                          color: AppTheme.primaryColor,
+                          _imagePath == null ? Icons.add : Icons.edit_outlined,
+                          color: c.accent,
                         ),
                       ],
                     ),
@@ -301,22 +235,16 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
                             return const SizedBox(
                               height: 100,
                               child: Center(
-                                child: Text(
-                                  'Unable to display this image. '
-                                  'Tap to select another.',
-                                ),
+                                child: Text('Unable to display this image. Tap to select another.'),
                               ),
                             );
                           },
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Tap to replace the selected photo.',
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: c.textSecondary, fontSize: 12),
                       ),
                     ],
                   ],
@@ -325,118 +253,50 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
             ),
             const SizedBox(height: 24),
 
-            const Text(
-              'Pharmacy location — Gasabo sector',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
+            _label('Pharmacy location'),
+            SectorDropdown(
+              value: _sector,
+              label: 'Sector',
+              enabled: !_isSubmitting,
+              onChanged: (value) => setState(() => _sector = value),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _locationController,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(
-                  Icons.location_on_outlined,
-                  color: AppTheme.primaryColor,
-                ),
-                hintText: 'Remera',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: AppTheme.borderColor,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Gasabo District, Kigali\n'
-              'Other sectors: Kacyiru, Kimironko',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-                height: 1.4,
-              ),
+            _hint(
+              context,
+              _sector == null
+                  ? 'Choose the sector where the pharmacy is.'
+                  : '${districtOfSector(_sector)} District, Kigali',
             ),
             const SizedBox(height: 24),
 
-            const Text(
-              'Batch code',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 8),
+            _label('Batch number'),
             TextField(
               controller: _batchController,
               textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: AppTheme.primaryColor,
-                ),
+                prefixIcon: Icon(Icons.search, color: c.accent),
                 hintText: 'RW-2026-0523',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: AppTheme.borderColor,
-                  ),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Copy the code exactly as printed on the box.',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-              ),
-            ),
+            _hint(context, 'Copy the batch number exactly as printed on the box.'),
             const SizedBox(height: 24),
 
-            const Text(
-              'Notes',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 8),
+            _label('Notes'),
             TextField(
               controller: _notesController,
               maxLines: 3,
               decoration: InputDecoration(
-                hintText:
-                    'Batch flagged during scan.\n'
-                    'Packaging held for review.',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: AppTheme.borderColor,
-                  ),
-                ),
+                hintText: 'Batch flagged during scan.\nPackaging held for review.',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Do not include patient names or medical details.',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-              ),
-            ),
+            _hint(context, 'Do not include patient names or medical details.'),
             const SizedBox(height: 32),
 
-            const Text(
+            Text(
               'Submitting shares these details with the review team. '
               'It does not confirm a counterfeit result.',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-                height: 1.4,
-              ),
+              style: TextStyle(color: c.textSecondary, fontSize: 12, height: 1.4),
             ),
             const SizedBox(height: 16),
 
@@ -449,10 +309,7 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
                     : const Text('Submit report'),
               ),

@@ -1,9 +1,26 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
 import '../../core/auth_manager.dart';
 import '../../core/config.dart';
+import '../models/batch_model.dart';
+
+/// An error with a message that is safe to show to the user.
+class ApiException implements Exception {
+  final String message;
+  final int? status;
+
+  /// Machine-readable reason from the server, e.g. ALREADY_DISPENSED.
+  final String? code;
+
+  ApiException(this.message, {this.status, this.code});
+
+  @override
+  String toString() => message;
+}
 
 class ApiService {
   static const String baseUrl = AppConfig.apiBaseUrl;
@@ -81,6 +98,118 @@ class ApiService {
     }
   }
 
+  static const Duration _timeout = Duration(seconds: 20);
+
+  static const String _offline =
+      'Unable to connect to the server. Please check your connection.';
+
+  /// Runs a request and turns connection problems into readable errors.
+  static Future<http.Response> _send(Future<http.Response> Function() request) async {
+    try {
+      return await request().timeout(_timeout);
+    } on TimeoutException {
+      throw ApiException('The server took too long to respond. Please try again.');
+    } on SocketException {
+      throw ApiException(_offline);
+    } on http.ClientException {
+      throw ApiException(_offline);
+    }
+  }
+
+  /// The server's own error text when it sent one.
+  static ({String? message, String? code}) _readError(http.Response response) {
+    try {
+      final dynamic decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        final message = decoded['error']?.toString();
+        final code = decoded['code']?.toString();
+        return (
+          message: (message != null && message.isNotEmpty) ? message : null,
+          code: code,
+        );
+      }
+    } on FormatException {
+      // Not JSON: fall back to a generic message.
+    }
+    return (message: null, code: null);
+  }
+
+  static Map<String, String> _authHeaders({bool json = false}) {
+    final headers = <String, String>{};
+    final token = AuthManager().jwtToken;
+    if (token != null && token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
+    if (json) headers['Content-Type'] = 'application/json';
+    return headers;
+  }
+
+  /// Checks a scanned or typed pack/batch code against the register.
+  /// Works for everyone; if a pharmacist is signed in, the server also records
+  /// who scanned and from which sector.
+  static Future<DrugBatch> verify(String code) async {
+    final uri = Uri.parse('$baseUrl/verify').replace(queryParameters: {'code': code});
+    final response = await _send(() => http.get(uri, headers: _authHeaders()));
+
+    if (response.statusCode == 200) {
+      try {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        return DrugBatch.fromApi(decoded, code);
+      } on FormatException {
+        throw ApiException('The server returned an invalid response.');
+      }
+    }
+
+    final err = _readError(response);
+    switch (response.statusCode) {
+      case 429:
+        throw ApiException(err.message ?? 'Too many scans. Please wait a moment and try again.', status: 429);
+      default:
+        throw ApiException(
+          err.message ??
+              (response.statusCode >= 500
+                  ? 'Server error. Please try again later.'
+                  : 'Could not verify this code. (Error ${response.statusCode})'),
+          status: response.statusCode,
+        );
+    }
+  }
+
+  /// Records that a pack was sold. Pharmacists only. Returns when the server stored it.
+  /// Throws an [ApiException] whose `code` is ALREADY_DISPENSED or NOT_DISPENSABLE
+  /// when the pack must not be sold.
+  static Future<DateTime?> dispense(String code) async {
+    final token = AuthManager().jwtToken;
+    if (token == null || token.isEmpty) {
+      throw ApiException('Sign in as a pharmacist to record a sale.');
+    }
+
+    final uri = Uri.parse('$baseUrl/serials/dispense');
+    final response = await _send(
+      () => http.post(uri, headers: _authHeaders(json: true), body: jsonEncode({'code': code})),
+    );
+
+    if (response.statusCode == 200) {
+      try {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        return DateTime.tryParse(decoded['dispensedAt']?.toString() ?? '');
+      } on FormatException {
+        return null; // The sale was recorded; only the timestamp is unreadable.
+      }
+    }
+
+    final err = _readError(response);
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw ApiException(
+        err.message ?? 'Your session has expired or you are not allowed to do this. Sign in again.',
+        status: response.statusCode,
+      );
+    }
+    throw ApiException(
+      err.message ?? 'Could not record the sale. (Error ${response.statusCode})',
+      status: response.statusCode,
+      code: err.code,
+    );
+  }
+
   // Submit a report with its own location field and an optional image.
   static Future<void> submitReport(
     String batchId,
@@ -88,15 +217,13 @@ class ApiService {
     String reason,
     String? imagePath,
   ) async {
+    final token = AuthManager().jwtToken;
+
+    if (token == null || token.isEmpty) {
+      throw ApiException('You must be logged in to submit a report.');
+    }
+
     try {
-      final token = AuthManager().jwtToken;
-
-      if (token == null || token.isEmpty) {
-        throw Exception(
-          'You must be logged in to submit a report.',
-        );
-      }
-
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/reports'),
@@ -115,45 +242,26 @@ class ApiService {
           imagePath.isNotEmpty &&
           !imagePath.startsWith('http')) {
         request.files.add(
-          await http.MultipartFile.fromPath(
-            'image',
-            imagePath,
-          ),
+          await http.MultipartFile.fromPath('image', imagePath),
         );
       }
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(
-        streamedResponse,
-      );
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode != 201) {
-        String errorMessage = 'Failed to submit report';
-
-        try {
-          final dynamic decoded = jsonDecode(response.body);
-
-          if (decoded is Map<String, dynamic>) {
-            final serverError = decoded['error']?.toString();
-
-            if (serverError != null && serverError.isNotEmpty) {
-              errorMessage = serverError;
-            }
-          }
-        } on FormatException {
-          // Keep the fallback message for invalid JSON responses.
-        }
-
-        throw Exception(errorMessage);
+        final err = _readError(response);
+        throw ApiException(
+          err.message ?? 'Failed to submit report (Error ${response.statusCode}).',
+          status: response.statusCode,
+        );
       }
-    } catch (e) {
-      // Preserve useful error details without wrapping them repeatedly.
-      if (e is Exception &&
-          e.toString().startsWith('Exception: Report submission error:')) {
-        rethrow;
-      }
-
-      throw Exception('Report submission error: $e');
+    } on TimeoutException {
+      throw ApiException('The upload took too long. Check your connection and try again.');
+    } on SocketException {
+      throw ApiException(_offline);
+    } on http.ClientException {
+      throw ApiException(_offline);
     }
   }
 }
