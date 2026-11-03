@@ -306,8 +306,11 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
             _notice(
               context,
               Icons.info_outline,
-              'This code identifies a whole batch, not a single pack. '
-              'Scan the code printed on the pack itself to check that pack.',
+              AuthManager().isPharmacist
+                  ? 'This code identifies a whole batch, not a single pack, so "Mark as Dispensed" is not shown. '
+                      'Scan the code printed on the pack itself to record a sale.'
+                  : 'This code identifies a whole batch, not a single pack. '
+                      'Scan the code printed on the pack itself to check that pack.',
               fg: c.textSecondary,
               bg: c.neutralBg,
             ),

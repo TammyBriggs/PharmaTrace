@@ -34,14 +34,22 @@ function dbVerdict(row) {
 
 /** Reads the verdict straight from the contract; null when the chain is unreachable or does not know the batch. */
 async function chainVerdict(row) {
-  try {
+  // CHAIN_READS=off lets a hosted copy answer from the database alone (no blockchain node to reach).
+  if (String(process.env.CHAIN_READS || '').toLowerCase() === 'off') return null;
+  // The whole chain read (deployment check + contract call) shares one 1.5 s budget, so an unreachable node
+  // can never stall a scan. On timeout the verdict simply comes from the database.
+  const read = (async () => {
     const dep = await assertDeployed();
     const c = new Contract(dep.address, dep.abi, getProvider());
-    const res = await Promise.race([
-      c.verifyBatch(row.batch_id_hash),
+    const res = await c.verifyBatch(row.batch_id_hash);
+    return CHAIN_KEY[Number(res[0])] ?? null;
+  })();
+  read.catch(() => {});
+  try {
+    return await Promise.race([
+      read,
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1500)),
     ]);
-    return CHAIN_KEY[Number(res[0])] ?? null;
   } catch { return null; }
 }
 
