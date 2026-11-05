@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { id as keccak } from 'ethers';
 import { Link } from 'react-router-dom';
-import { CircleCheck, ChevronDown, ChevronLeft, ChevronRight, Clock3, Info, Loader2, Plus, Search, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { CircleCheck, ChevronDown, ChevronLeft, ChevronRight, Clock3, Info, KeyRound, Loader2, Plus, Search, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { explain, shortAddr, useWallet, type WalletErrorCode } from '../lib/wallet';
 import { fmtDay, num } from '../lib/format';
 import { Card, ErrorState, PageHeading, Skeleton, StatusChip, type ChipKind } from '../components/ui';
 import Modal, { btnDanger, btnPrimary, btnSecondary } from '../components/Modal';
+import Credentials from '../components/Credentials';
 
 type MStatus = 'pending' | 'active' | 'revoked';
-interface Mf { id: string; name: string; licenseNumber: string; wallet: string; country: string; status: MStatus; approvedDate: string | null }
+interface Mf { id: string; name: string; licenseNumber: string; wallet: string; country: string; status: MStatus; approvedDate: string | null; loginEmail: string | null }
+interface Login { contact: string; temporaryPassword: string; emailSent: boolean }
 interface ListResp {
   items: Mf[]; total: number; page: number; pageSize: number;
   counts: { total: number; approved: number; pending: number; revoked: number };
@@ -39,6 +41,7 @@ export default function Manufacturers() {
   const [page, setPage] = useState(1);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [revoking, setRevoking] = useState<Mf | null>(null);
+  const [loginFor, setLoginFor] = useState<Mf | null>(null);
   const [tx, setTx] = useState<TxState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -119,9 +122,9 @@ export default function Manufacturers() {
             <table className="w-full min-w-[860px] table-fixed text-sm">
               <thead>
                 <tr className="h-11 bg-canvas text-left text-xs font-semibold text-mute">
-                  <th className="w-[26%] px-4">Manufacturer</th><th className="w-[16%] px-4">Licence number</th>
-                  <th className="w-[17%] px-4">Wallet address</th><th className="w-[14%] px-4">Status</th>
-                  <th className="w-[15%] px-4">Approved date</th><th className="w-[12%] px-4 text-right">Action</th>
+                  <th className="w-[24%] px-4">Manufacturer</th><th className="w-[14%] px-4">Licence number</th>
+                  <th className="w-[15%] px-4">Wallet address</th><th className="w-[12%] px-4">Status</th>
+                  <th className="w-[14%] px-4">Approved date</th><th className="w-[21%] px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className={loading && data ? 'opacity-60' : ''}>
@@ -132,7 +135,7 @@ export default function Manufacturers() {
                 ))}
                 {data?.items.map((m) => (
                   <tr key={m.id} className={`h-16 border-t border-line ${m.status === 'pending' ? 'bg-brand-tint/50' : ''}`}>
-                    <td className="px-4"><Link to={`/manufacturers/${m.id}`} className="block truncate font-semibold hover:text-brand hover:underline">{m.name}</Link><div className="text-xs text-mute">{m.country}</div></td>
+                    <td className="px-4"><Link to={`/manufacturers/${m.id}`} className="block truncate font-semibold hover:text-brand hover:underline">{m.name}</Link><div className="truncate text-xs text-mute">{m.country} · {m.loginEmail ? `Login: ${m.loginEmail}` : 'No login yet'}</div></td>
                     <td className="px-4 font-mono text-xs">{m.licenseNumber}</td>
                     <td className="px-4 font-mono text-xs text-brand" title={m.wallet}>{shortAddr(m.wallet)}</td>
                     <td className="px-4"><StatusChip kind={CHIP[m.status]} /></td>
@@ -140,6 +143,10 @@ export default function Manufacturers() {
                       {m.status === 'active' && m.approvedDate ? fmtDay(m.approvedDate) : m.status === 'pending' ? 'Awaiting approval' : 'Revoked'}
                     </td>
                     <td className="px-4 text-right">
+                      <button onClick={() => setLoginFor(m)} title={m.loginEmail ? 'Reset this manufacturer\u2019s password' : 'Create a dashboard login'}
+                        className="mr-3 inline-flex items-center gap-1 align-middle text-sm font-semibold text-brand hover:underline">
+                        <KeyRound size={14} aria-hidden /> {m.loginEmail ? 'Reset login' : 'Create login'}
+                      </button>
                       {m.status === 'active'
                         ? <button onClick={() => setRevoking(m)} className="text-sm font-semibold text-danger hover:underline">Revoke</button>
                         : <button onClick={() => runTx(m, 'approve')} className="text-sm font-semibold text-brand hover:underline">
@@ -204,6 +211,8 @@ export default function Manufacturers() {
         </Modal>
       )}
 
+      {loginFor && <LoginModal m={loginFor} onClose={() => setLoginFor(null)} onDone={reload} />}
+
       {tx && <TxDialog tx={tx} onClose={() => setTx(null)} onRetry={() => (tx.hash ? record(tx.m, tx.kind, tx.hash) : runTx(tx.m, tx.kind))} />}
 
       {toast && (
@@ -254,10 +263,11 @@ function TxDialog({ tx, onClose, onRetry }: { tx: TxState; onClose: () => void; 
 function RegisterModal({ total, onClose, onCreated, onView }: {
   total: number; onClose: () => void; onCreated: () => void; onView: (licence: string) => void;
 }) {
-  const [f, setF] = useState({ name: '', licenseNumber: '', wallet: '', country: 'Rwanda' });
+  const [f, setF] = useState({ name: '', licenseNumber: '', wallet: '', country: 'Rwanda', contactEmail: '' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<Mf | null>(null);
+  const [login, setLogin] = useState<{ login: Login | null; loginError: string | null }>({ login: null, loginError: null });
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   async function submit(e: FormEvent) {
@@ -266,10 +276,12 @@ function RegisterModal({ total, onClose, onCreated, onView }: {
     if (f.name.trim().length < 2) return setError('Enter the manufacturer name.');
     if (f.licenseNumber.trim().length < 3) return setError('Enter the licence number.');
     if (!/^0x[0-9a-fA-F]{40}$/.test(f.wallet.trim())) return setError('Enter a valid wallet address (0x followed by 40 characters).');
+    if (f.contactEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.contactEmail.trim())) return setError('Enter a valid login email address, or leave it empty.');
     setBusy(true);
     try {
-      const r = await api<{ manufacturer: Mf }>('/manufacturers', { method: 'POST', body: JSON.stringify(f) });
+      const r = await api<{ manufacturer: Mf; login: Login | null; loginError: string | null }>('/manufacturers', { method: 'POST', body: JSON.stringify({ ...f, contactEmail: f.contactEmail.trim() }) });
       setCreated(r.manufacturer);
+      setLogin({ login: r.login, loginError: r.loginError });
       onCreated();
     } catch (err) {
       setError((err as Error).message);
@@ -288,6 +300,11 @@ function RegisterModal({ total, onClose, onCreated, onView }: {
           <div className="font-mono text-xs text-brand" title={created.wallet}>{shortAddr(created.wallet)}</div>
           <p className="text-xs text-mute">{num(total)} registered manufacturers · Licence approval is pending.</p>
         </div>
+        {login.login && <Credentials contact={login.login.contact} password={login.login.temporaryPassword} emailSent={login.login.emailSent} />}
+        {login.loginError && <p role="alert" className="text-sm text-danger">{login.loginError}</p>}
+        {!login.login && !login.loginError && (
+          <p className="flex items-center gap-2 text-sm text-mute"><Info size={16} className="shrink-0" aria-hidden /> No login was created. Use “Create login” in the list when the manufacturer is ready to sign in.</p>
+        )}
         <div className="flex items-center gap-2 text-sm text-mute">
           <CircleCheck size={16} className="text-brand" aria-hidden /> The manufacturer can submit batches after licence review.
         </div>
@@ -324,10 +341,67 @@ function RegisterModal({ total, onClose, onCreated, onView }: {
             <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-mute" aria-hidden />
           </div>
         </div>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="mf-email" className="text-sm font-semibold">Login email <span className="font-normal text-mute">(optional)</span></label>
+          <input id="mf-email" type="email" className={field} value={f.contactEmail} onChange={set('contactEmail')} placeholder="name@manufacturer.com" autoComplete="off" />
+          <p className="flex items-center gap-1.5 text-xs text-mute"><Info size={14} aria-hidden /> Creates their dashboard login with a temporary password, shown once on the next screen.</p>
+        </div>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-3">
           <button type="button" className={btnSecondary} onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className={btnPrimary} disabled={busy}>{busy ? 'Saving…' : 'Register manufacturer'}</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function LoginModal({ m, onClose, onDone }: { m: Mf; onClose: () => void; onDone: () => void }) {
+  const exists = !!m.loginEmail;
+  const [email, setEmail] = useState('');
+  const [result, setResult] = useState<(Login & { created: boolean }) | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function go(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!exists && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return setError('Enter the email address this manufacturer will sign in with.');
+    setBusy(true);
+    try {
+      const r = await api<Login & { created: boolean }>(`/manufacturers/${m.id}/login`, { method: 'POST', body: JSON.stringify(exists ? {} : { email: email.trim() }) });
+      setResult(r);
+      onDone();
+    } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
+  }
+
+  if (result) {
+    return (
+      <Modal title={result.created ? 'Login created' : 'New temporary password'} subtitle={m.name} onClose={onClose}>
+        <Credentials contact={result.contact} password={result.temporaryPassword} emailSent={result.emailSent} />
+        <div className="flex justify-end"><button className={btnPrimary} onClick={onClose}>Done</button></div>
+      </Modal>
+    );
+  }
+  return (
+    <Modal title={exists ? 'Reset manufacturer login?' : 'Create dashboard login'} subtitle={m.name} onClose={onClose} busy={busy}>
+      <form onSubmit={go} noValidate className="flex flex-col gap-5">
+        {exists ? (
+          <div className="flex items-start gap-3 rounded-lg bg-[#fffbeb] p-4 text-sm text-[#b45309]">
+            <TriangleAlert size={18} className="mt-0.5 shrink-0" aria-hidden />
+            <span>A new temporary password will replace the current one for <b>{m.loginEmail}</b>. They must choose their own at the next sign-in.</span>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <label htmlFor="mf-login-email" className="text-sm font-semibold">Login email</label>
+            <input id="mf-login-email" type="email" className={field} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@manufacturer.com" autoComplete="off" />
+            <p className="text-xs text-mute">They sign in to the dashboard with this email and a temporary password.</p>
+          </div>
+        )}
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+        <div className="flex justify-end gap-3">
+          <button type="button" className={btnSecondary} onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="submit" className={btnPrimary} disabled={busy}>{busy ? 'Working…' : exists ? 'Reset password' : 'Create login'}</button>
         </div>
       </form>
     </Modal>

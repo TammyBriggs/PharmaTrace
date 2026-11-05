@@ -2,6 +2,8 @@ const { ethers } = require('ethers');
 const pool = require('../config/db');
 const { getProvider, assertDeployed } = require('../config/chain');
 const { recordAudit } = require('../utils/audit');
+const { createAccount, resetAccount } = require('../utils/accounts');
+const { isEmail } = require('../utils/password');
 
 const COUNTRIES = ['Rwanda', 'Kenya', 'Uganda', 'Tanzania', 'Burundi', 'DR Congo', 'Ethiopia',
   'South Africa', 'Egypt', 'India', 'Germany', 'China', 'Other'];
@@ -15,9 +17,12 @@ const toApi = (r) => ({
   id: r.id, name: r.name, licenseNumber: r.license_number, wallet: r.wallet_address,
   country: r.country, status: r.status, approvedDate: r.approved_date ?? null,
   registerTxHash: r.register_tx_hash ?? null,
+  loginEmail: r.login_email ?? null,   // the manufacturer's dashboard login, if one has been issued
 });
 
 const COLS = `id, name, license_number, wallet_address, country, status, register_tx_hash,
+  (SELECT u.contact FROM users u WHERE u.manufacturer_id = manufacturers.id AND u.role = 'manufacturer' AND u.is_active
+    ORDER BY u.created_at DESC NULLS LAST LIMIT 1) AS login_email,
   to_char((approved_at AT TIME ZONE 'UTC') AT TIME ZONE 'Africa/Kigali', 'YYYY-MM-DD') AS approved_date`;
 
 const listManufacturers = async (req, res) => {
@@ -65,6 +70,11 @@ const createManufacturer = async (req, res) => {
     if (!ethers.isAddress(rawWallet)) return res.status(400).json({ error: 'Enter a valid wallet address (0x followed by 40 characters).' });
     if (!COUNTRIES.includes(country)) return res.status(400).json({ error: 'Choose a country from the list.' });
     const wallet = rawWallet.toLowerCase();
+    const loginEmail = String(req.body.contactEmail || '').trim().toLowerCase();
+    if (loginEmail && !isEmail(loginEmail)) return res.status(400).json({ error: 'Enter a valid login email address.' });
+    if (loginEmail && (await pool.query('SELECT 1 FROM users WHERE lower(contact) = $1', [loginEmail])).rowCount) {
+      return res.status(409).json({ error: 'An account with that email already exists.' });
+    }
 
     const dup = await pool.query(
       'SELECT license_number, wallet_address FROM manufacturers WHERE license_number = $1 OR wallet_address = $2',
@@ -80,7 +90,19 @@ const createManufacturer = async (req, res) => {
       `INSERT INTO manufacturers (name, license_number, license_hash, wallet_address, country, status, created_by)
        VALUES ($1,$2,$3,$4,$5,'pending',$6) RETURNING ${COLS}`,
       [name, licence, licenseHash(licence), wallet, country, req.user.id]);
-    res.status(201).json({ manufacturer: toApi(rows[0]), licenseHash: licenseHash(licence) });
+    let login = null, loginError = null;
+    if (loginEmail) {
+      try {
+        const out = await createAccount({ name, role: 'manufacturer', contact: loginEmail, wallet, manufacturerId: rows[0].id, actorId: req.user.id });
+        await pool.query('UPDATE manufacturers SET contact_email = $2 WHERE id = $1', [rows[0].id, loginEmail]);
+        login = { contact: loginEmail, temporaryPassword: out.temporaryPassword, emailSent: out.emailSent };
+      } catch (e) {
+        console.error('Manufacturer saved but its login was not created:', e.message);
+        loginError = 'The manufacturer was saved, but its login could not be created. Use "Create login" on the manufacturer.';
+      }
+    }
+    const fresh = (await pool.query(`SELECT ${COLS} FROM manufacturers WHERE id = $1`, [rows[0].id])).rows[0];
+    res.status(201).json({ manufacturer: toApi(fresh), licenseHash: licenseHash(licence), login, loginError });
   } catch (e) {
     console.error('Error creating manufacturer:', e.message);
     res.status(500).json({ error: 'Server error while saving the manufacturer' });
@@ -160,4 +182,46 @@ const confirmManufacturer = async (req, res) => {
   }
 };
 
-module.exports = { listManufacturers, createManufacturer, confirmManufacturer, COUNTRIES };
+/**
+ * POST /api/manufacturers/:id/login  { email? }
+ * Creates the manufacturer's dashboard login, or, if one exists, issues a new temporary password.
+ * The password is returned once and must be changed at first sign-in.
+ */
+const issueManufacturerLogin = async (req, res) => {
+  try {
+    const mf = (await pool.query('SELECT id, name, wallet_address, contact_email FROM manufacturers WHERE id = $1', [req.params.id])).rows[0];
+    if (!mf) return res.status(404).json({ error: 'Manufacturer not found.' });
+    const email = String(req.body.email || '').trim().toLowerCase();
+    if (email && !isEmail(email)) return res.status(400).json({ error: 'Enter a valid login email address.' });
+
+    const existing = (await pool.query(
+      `SELECT id, contact FROM users WHERE manufacturer_id = $1 AND role = 'manufacturer' AND is_active
+        ORDER BY created_at DESC NULLS LAST LIMIT 1`, [mf.id])).rows[0];
+
+    if (existing) {
+      if (email && email !== existing.contact.toLowerCase()) {
+        if ((await pool.query('SELECT 1 FROM users WHERE lower(contact) = $1 AND id <> $2', [email, existing.id])).rowCount) {
+          return res.status(409).json({ error: 'An account with that email already exists.' });
+        }
+        await pool.query('UPDATE users SET contact = $2 WHERE id = $1', [existing.id, email]);
+        await pool.query('UPDATE manufacturers SET contact_email = $2 WHERE id = $1', [mf.id, email]);
+      }
+      const out = await resetAccount({ userId: existing.id, actorId: req.user.id });
+      return res.json({ created: false, contact: out.user.contact, temporaryPassword: out.temporaryPassword, emailSent: out.emailSent });
+    }
+
+    const contact = email || String(mf.contact_email || '').toLowerCase();
+    if (!isEmail(contact)) return res.status(400).json({ error: 'Enter the email address this manufacturer will sign in with.' });
+    if ((await pool.query('SELECT 1 FROM users WHERE lower(contact) = $1', [contact])).rowCount) {
+      return res.status(409).json({ error: 'An account with that email already exists.' });
+    }
+    const out = await createAccount({ name: mf.name, role: 'manufacturer', contact, wallet: mf.wallet_address, manufacturerId: mf.id, actorId: req.user.id });
+    await pool.query('UPDATE manufacturers SET contact_email = $2 WHERE id = $1', [mf.id, contact]);
+    res.status(201).json({ created: true, contact, temporaryPassword: out.temporaryPassword, emailSent: out.emailSent });
+  } catch (e) {
+    console.error('Error issuing manufacturer login:', e.message);
+    res.status(500).json({ error: 'Server error while creating the login.' });
+  }
+};
+
+module.exports = { listManufacturers, createManufacturer, confirmManufacturer, issueManufacturerLogin, COUNTRIES };

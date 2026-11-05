@@ -3,6 +3,7 @@ import 'core/theme.dart';
 import 'core/theme_controller.dart';
 import 'core/auth_manager.dart';
 import 'core/main_navigation.dart';
+import 'features/auth/change_password_screen.dart';
 import 'features/onboarding/splash_screen.dart';
 import 'data/services/scan_history_manager.dart';
 
@@ -37,8 +38,11 @@ class PharmaTraceApp extends StatelessWidget {
 
         // Returning users skip the splash/onboarding flow.
         // New users start at the splash screen.
+        // A pharmacist who closed the app before replacing a temporary password lands back on that step.
         home: startAtMain
-            ? const MainNavigationScreen()
+            ? (AuthManager().mustChangePassword
+                ? const ChangePasswordScreen(forced: true)
+                : const MainNavigationScreen())
             : const SplashScreen(),
       ),
     );

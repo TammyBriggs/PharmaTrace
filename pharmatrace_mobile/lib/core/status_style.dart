@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/models/batch_model.dart';
+import 'auth_manager.dart';
 import 'theme.dart';
 
 /// How a verification result is drawn: chip colours, icon and label.
@@ -32,7 +33,13 @@ StatusStyle statusStyleFor(BuildContext context, BatchVerdict verdict) {
     case BatchVerdict.revoked:
       return StatusStyle(fg: c.dangerFg, bg: c.dangerBg, icon: Icons.block, label: 'Revoked');
     case BatchVerdict.duplicate:
-      return StatusStyle(fg: c.dangerFg, bg: c.dangerBg, icon: Icons.content_copy, label: 'Already dispensed');
+      // A pharmacist must not sell this pack again, so it stays a firm red stop.
+      if (AuthManager().isPharmacist) {
+        return StatusStyle(fg: c.dangerFg, bg: c.dangerBg, icon: Icons.content_copy, label: 'Already dispensed');
+      }
+      // A patient who just bought the pack gets this result too. The product is registered and its
+      // batch is approved, so it is shown calmly instead of looking like a fake-drug warning.
+      return StatusStyle(fg: c.warningFg, bg: c.warningBg, icon: Icons.verified_outlined, label: 'Genuine product, already sold');
     case BatchVerdict.notFound:
       return StatusStyle(fg: c.neutralFg, bg: c.neutralBg, icon: Icons.help_outline, label: 'Not found');
   }

@@ -27,11 +27,11 @@ The system has four parts that work together end to end.
 
 **Smart contract:** role-based access (admin, regulator, manufacturer); manufacturer registration and revocation; batch submit, approve, flag, resolve flag, revoke, reinstate; one public `verifyBatch` verdict (`Authentic`, `Pending`, `Flagged`, `Expired`, `ManufacturerRevoked`, `BatchRevoked`, `NotFound`); an emergency pause that can never block a recall.
 
-**Backend:** JWT login with role checks; GS1 Digital Link parsing with a check-digit test; a unique serial number for every pack; scan verification that combines the database and the contract (worst result wins); sale recording (a pack sold twice is flagged as a duplicate); a hash-chained audit log; scan analytics by sector; flag-report review; notifications; global search.
+**Backend:** JWT login with role checks; GS1 Digital Link parsing with a check-digit test; a unique serial number for every pack; scan verification that combines the database and the contract (worst result wins); sale recording (a pack sold twice is flagged as a duplicate); a hash-chained audit log; scan analytics by sector; a sector risk map; flag-report review; notifications; global search; regulator-issued logins for pharmacists and manufacturers with a forced first-time password change; password reset by emailed code; server-side check that a pharmacist's sector is one of the 15 in Gasabo; per-route rate limits on sign-in, password reset and scans.
 
-**Web dashboard:** overview, manufacturers (add, approve on-chain, detail page), batches (list, detail, provenance timeline, approve, flag, resolve, revoke, reinstate), QR label printing, flag reports, scan analytics, audit log with chain verification, notifications, global search, and a separate overview for manufacturer accounts.
+**Web dashboard:** overview, manufacturers (add, approve on-chain, detail page), batches (list, detail, provenance timeline, approve, flag, resolve, revoke, reinstate), QR label printing, flag reports, scan analytics, a risk map of scan results by sector, pharmacist management (create, reset password, deactivate), manufacturer sign-in details, audit log with chain verification, notifications, global search, and a separate overview for manufacturer accounts.
 
-**Mobile app:** QR scanning and manual entry by batch number (GTIN and pack serial optional); verification result with the plain-language reason; batch history timeline; "mark as dispensed" and "report product" for pharmacists; scan history saved on the phone; light and dark themes; Gasabo District sector selection for pharmacists.
+**Mobile app:** QR scanning and manual entry by batch number (GTIN and pack serial optional); verification result with the plain-language reason (a pack that was already sold is shown calmly to patients as a genuine product, and firmly to pharmacists as "do not dispense again"); batch history timeline; "mark as dispensed" and "report product" for pharmacists; scan history saved on the phone; light and dark themes; Gasabo District sector selection for pharmacists; forced password change after the first sign-in, change password and forgot password.
 
 ### Scope status
 
@@ -43,7 +43,9 @@ The system has four parts that work together end to end.
 | Pack-level serial numbers and sale recording | Complete |
 | Audit log with hash chain | Complete |
 | Scan analytics by sector | Complete |
-| Pharmacist accounts created by a regulator | Partial (create works; emailed temporary password and password reset are not built) |
+| Pharmacist and manufacturer accounts created by a regulator | Complete (temporary password, forced change on first sign-in, reset by a regulator or by emailed code) |
+| Sector check and rate limiting | Complete (15 Gasabo sectors enforced on the server; limits on sign-in, reset and scans) |
+| Risk map by sector | Complete (no exact locations are stored) |
 | Deployment to a public test network (Sepolia) | Not done (runs on a local Hardhat chain) |
 | Production hosting in Rwanda | Not done (development runs through an ngrok tunnel) |
 
@@ -124,11 +126,16 @@ OBJECT_STORAGE_ENDPOINT=...                  # S3-compatible storage for report 
 OBJECT_STORAGE_BUCKET=...
 OBJECT_STORAGE_ACCESS_KEY=...
 OBJECT_STORAGE_SECRET_KEY=...
+MAIL_API_KEY=...                             # optional: Brevo API key. Without it no email is sent and the regulator sees a new password on screen
+MAIL_FROM=no-reply@your-domain               # a sender address verified in Brevo
+MAIL_FROM_NAME=PharmaTrace
+DASHBOARD_URL=http://localhost:5173          # shown in the emails that carry a login
 ```
 
 ```bash
 cd pharmatrace_backend
-node scripts/migrate.js                                   # builds all tables (001 to 007); safe to re-run
+npm install                                               # adds express-rate-limit
+node scripts/migrate.js                                   # builds all tables (001 to 008); safe to re-run
 node scripts/importCatalog.js                             # product catalogue (add data/catalog_clean_all.csv for all 513 products)
 
 # A regulator login, plus the demo super admin if you want one:
@@ -151,7 +158,7 @@ This erases manufacturers, batches, serials, scans and flag reports, then create
 
 ```bash
 cd pharmatrace_backend && npm start            # http://localhost:3000
-cd pharmatrace_dashboard && npm run dev        # http://localhost:5173
+cd pharmatrace_dashboard && npm install && npm run dev   # http://localhost:5173 (npm install adds leaflet for the risk map)
 ```
 
 ### 6. Run the mobile app
@@ -174,6 +181,7 @@ The app adds `/api` itself. Without `--dart-define` it uses the default in `lib/
 | Contract unit tests | `npx hardhat test` (repo root) | Roles, batch life cycle, flag and revoke, manufacturer revocation, emergency pause, expiry |
 | Unit tests | `cd pharmatrace_backend && npm test` | GS1 check digit, GTIN derivation, serial alphabet, Digital Link parsing |
 | API integration tests | same command (needs the API running and seeded data) | Verdicts against the real database and contract, batch-number lookup, bad input, public history order, authentication, audit chain |
+| Account tests | `node --test tests/accounts.integration.test.js` (needs the API running on a test database) | Pharmacist and manufacturer logins, forced password change, reset codes (once, 5 tries, expiry), sector check, sign-in rate limit, risk-map response |
 | Device testing | Manual | Tecno Camon 15 over a mobile network, light and dark themes, patient and pharmacist flows |
 | Performance | ngrok traffic inspector | Scan requests through the tunnel measured per request |
 
@@ -231,6 +239,11 @@ PharmaTrace/
 | Forged on-chain actions | The API verifies the transaction receipt, the batch, the wallet and the signed reason hash |
 | Tampering with history | Hash-chained audit log, verifiable from the dashboard |
 | Guessing pack serials | 12-character random serials (32^12 possibilities) |
+| Password guessing | Failed sign-ins limited per address and account (8 per 15 minutes); reset codes are 6 digits, expire in 15 minutes, allow 5 tries and are stored only as a hash |
+| Weak or shared passwords | Regulator-issued passwords are temporary: the token from that sign-in can only change the password |
+| Finding who has an account | Forgot-password answers the same whether or not the email exists |
+| Scan flooding | Per-address limit on the scan route |
+| Tracking people through scans | The risk map places scans by the pharmacist's registered sector, never by GPS or address; patient scans carry no location |
 | Personal data on-chain | Only addresses, timestamps, statuses and hashes are stored |
 
 ## Known limitations
@@ -238,7 +251,8 @@ PharmaTrace/
 - The API rate limiter keeps its counts in memory. It resets on restart and does not share counts between servers.
 - Everything runs on a local chain. A public test network and hosting in Rwanda are future steps.
 - A cloned QR code on a fake pack is only caught when the same serial is sold twice or scanned in unusual patterns.
-- Pharmacists cannot yet reset their own password.
+- Reset codes are emailed through Brevo. Without a Brevo key (or for an account that uses a phone number) a regulator resets the password from the dashboard instead.
+- The risk map draws each sector at an approximate centre point, not its boundary.
 - The ngrok free tunnel adds about half a second per request, so measured scan times include it.
 
 ---

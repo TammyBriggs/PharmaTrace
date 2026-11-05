@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import {
-  Building2, ChartNoAxesCombined, ChevronDown, ClipboardList, Flag, LayoutDashboard,
-  LogOut, Pill, ShieldCheck, ShieldPlus, type LucideIcon,
+  Building2, ChartNoAxesCombined, ChevronDown, ClipboardList, Flag, KeyRound, LayoutDashboard,
+  LogOut, MapPinned, Pill, ShieldCheck, ShieldPlus, Users, type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { ROLE_LABEL, initials } from '../lib/format';
@@ -10,6 +10,8 @@ import WalletChip from './WalletChip';
 import NotificationPanel from './NotificationPanel';
 import GlobalSearch from './GlobalSearch';
 import type { Role } from '../lib/api';
+import Modal from './Modal';
+import ChangePasswordForm from './ChangePasswordForm';
 
 interface NavItem { to: string; label: string; Icon: LucideIcon; roles: Role[] }
 
@@ -17,8 +19,10 @@ interface NavItem { to: string; label: string; Icon: LucideIcon; roles: Role[] }
 export const NAV: NavItem[] = [
   { to: '/overview', label: 'Overview', Icon: LayoutDashboard, roles: ['regulator', 'manufacturer'] },
   { to: '/manufacturers', label: 'Manufacturers', Icon: Building2, roles: ['regulator'] },
+  { to: '/pharmacists', label: 'Pharmacists', Icon: Users, roles: ['regulator'] },
   { to: '/batches', label: 'Batches', Icon: Pill, roles: ['regulator', 'manufacturer'] },
   { to: '/analytics', label: 'Scan Analytics', Icon: ChartNoAxesCombined, roles: ['regulator'] },
+  { to: '/risk-map', label: 'Risk Map', Icon: MapPinned, roles: ['regulator'] },
   { to: '/flag-reports', label: 'Flag Reports', Icon: Flag, roles: ['regulator'] },
   { to: '/audit-log', label: 'Audit Log', Icon: ClipboardList, roles: ['regulator'] },
 ];
@@ -26,6 +30,7 @@ export const NAV: NavItem[] = [
 export default function AppShell() {
   const { user, logout } = useAuth();
   const [menu, setMenu] = useState(false);
+  const [changing, setChanging] = useState(false);
   if (!user) return null;
   const items = NAV.filter((n) => user.role === 'super_admin' || n.roles.includes(user.role));
 
@@ -42,7 +47,7 @@ export default function AppShell() {
           <p className="text-xs text-mute">{user.role === 'manufacturer' ? 'MANUFACTURER WORKSPACE' : 'REGULATORY WORKSPACE'}</p>
         </div>
 
-        <nav aria-label="Primary" className="flex flex-col gap-2">
+        <nav aria-label="Primary" className="flex min-h-0 flex-col gap-2 overflow-y-auto">
           {items.map(({ to, label, Icon }) => (
             <NavLink key={to} to={to}
               className={({ isActive }) =>
@@ -83,6 +88,10 @@ export default function AppShell() {
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} aria-hidden />
                 <div role="menu" className="absolute right-0 top-14 z-20 w-48 rounded-lg border border-line bg-white p-1 shadow-card">
+                  <button role="menuitem" onClick={() => { setMenu(false); setChanging(true); }}
+                    className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-sm hover:bg-canvas">
+                    <KeyRound size={16} aria-hidden /> Change password
+                  </button>
                   <button role="menuitem" onClick={logout}
                     className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-sm hover:bg-canvas">
                     <LogOut size={16} aria-hidden /> Sign out
@@ -94,6 +103,11 @@ export default function AppShell() {
         </header>
 
         <main className="px-8 py-6"><Outlet /></main>
+        {changing && (
+          <Modal title="Change password" subtitle="Choose a new password for your account." onClose={() => setChanging(false)}>
+            <ChangePasswordForm currentLabel="Current password" onDone={() => setChanging(false)} />
+          </Modal>
+        )}
       </div>
     </div>
   );

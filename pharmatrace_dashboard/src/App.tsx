@@ -7,6 +7,9 @@ import ScanAnalytics from './pages/ScanAnalytics';
 import AuditLog from './pages/AuditLog';
 import Manufacturers from './pages/Manufacturers';
 import ManufacturerDetail from './pages/ManufacturerDetail';
+import Pharmacists from './pages/Pharmacists';
+import RiskMap from './pages/RiskMap';
+import ForgotPassword from './pages/ForgotPassword';
 import Batches from './pages/Batches';
 import BatchDetail from './pages/BatchDetail';
 import BatchPrint from './pages/BatchPrint';
@@ -21,11 +24,14 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/batches/:id/print" element={only(['regulator', 'manufacturer'], <BatchPrint />)} />
       <Route element={<RequireRole><AppShell /></RequireRole>}>
         <Route path="/overview" element={<Overview />} />
         <Route path="/manufacturers" element={only(['regulator'], <Manufacturers />)} />
         <Route path="/manufacturers/:id" element={only(['regulator'], <ManufacturerDetail />)} />
+        <Route path="/pharmacists" element={only(['regulator'], <Pharmacists />)} />
+        <Route path="/risk-map" element={only(['regulator'], <RiskMap />)} />
         <Route path="/batches" element={only(['regulator', 'manufacturer'], <Batches />)} />
         <Route path="/batches/:id" element={only(['regulator', 'manufacturer'], <BatchDetail />)} />
         <Route path="/analytics" element={only(['regulator'], <ScanAnalytics />)} />

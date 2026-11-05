@@ -209,8 +209,73 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
     );
   }
 
+  /// A patient scanning a pack that was already sold. Often this is simply the pack they just bought.
+  bool _isPatientDuplicate(DrugBatch batch) => batch.verdict == BatchVerdict.duplicate && !AuthManager().isPharmacist;
+
+  /// The server's message for this verdict is written for pharmacists ("Do not dispense it again").
+  /// Patients get words that say what is known and what is not.
+  String _verdictMessage(DrugBatch batch) {
+    if (!_isPatientDuplicate(batch)) return batch.message;
+    final when = batch.dispensedAt != null ? ' on ${fmtKigaliDateTime(batch.dispensedAt!)}' : '';
+    return 'This medicine is registered and its batch is approved. '
+        'This exact pack was recorded as sold$when.';
+  }
+
+  Widget _duplicateExplainer(BuildContext context) {
+    final c = context.colors;
+    Widget point(IconData icon, Color color, String title, String body) => Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: 20, color: color),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 2),
+                    Text(body, style: TextStyle(color: c.textSecondary, fontSize: 13, height: 1.4)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border.all(color: c.border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          point(
+            Icons.shopping_bag_outlined,
+            c.successFg,
+            'Just bought it? This is normal.',
+            'Each pack can be sold once. The pharmacy marks it as sold at the counter, so your own pack shows this result.',
+          ),
+          point(
+            Icons.report_problem_outlined,
+            c.warningFg,
+            'Did not just buy it?',
+            'Someone may have copied this code onto another pack. Do not use the medicine and tell the pharmacy '
+                'or the Rwanda Food and Drugs Authority where you got it.',
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _verdictCard(BuildContext context, DrugBatch batch) {
     final s = statusStyleFor(context, batch.verdict);
+    final message = _verdictMessage(batch);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -225,9 +290,9 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(s.label, style: TextStyle(color: s.fg, fontWeight: FontWeight.bold, fontSize: 18)),
-                if (batch.message.isNotEmpty) ...[
+                if (message.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text(batch.message, style: TextStyle(color: context.colors.textPrimary, fontSize: 14, height: 1.35)),
+                  Text(message, style: TextStyle(color: context.colors.textPrimary, fontSize: 14, height: 1.35)),
                 ],
               ],
             ),
@@ -273,6 +338,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
               bg: c.neutralBg,
             ),
           _verdictCard(context, batch),
+          if (_isPatientDuplicate(batch)) _duplicateExplainer(context),
           if (justDispensed) ...[
             const SizedBox(height: 12),
             _notice(

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldCheck, ShieldPlus } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 
@@ -75,8 +75,7 @@ export default function Login() {
               className="size-4 accent-brand" />
             Remember me
           </label>
-          {/* Wired to the password-reset flow in Milestone 4 */}
-          <span className="font-semibold text-brand">Forgot password?</span>
+          <Link to="/forgot-password" className="font-semibold text-brand hover:underline">Forgot password?</Link>
         </div>
 
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}

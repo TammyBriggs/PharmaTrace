@@ -11,6 +11,7 @@ import '../../core/widgets/sector_dropdown.dart';
 import '../onboarding/onboarding_screen.dart';
 import 'privacy_notice_screen.dart';
 import 'report_product_screen.dart';
+import '../auth/change_password_screen.dart';
 import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -245,8 +246,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               context,
               icon: Icons.lock_reset_outlined,
               title: 'Change password',
-              subtitle: 'Coming soon',
-              onTap: null,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChangePasswordScreen(),
+                ),
+              ),
             ),
           ],
 

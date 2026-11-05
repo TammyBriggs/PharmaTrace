@@ -156,6 +156,85 @@ class ApiService {
     return headers;
   }
 
+  /// Sets a new password while signed in. Works with the restricted token from a
+  /// temporary-password sign-in. Returns the normal token that replaces it.
+  static Future<String> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await _send(
+      () => http.post(
+        Uri.parse('$baseUrl/auth/change-password'),
+        headers: _authHeaders(json: true),
+        body: jsonEncode({'currentPassword': currentPassword, 'newPassword': newPassword}),
+      ),
+    );
+    if (response.statusCode == 200) {
+      try {
+        final token = (jsonDecode(response.body) as Map<String, dynamic>)['token'];
+        if (token is String && token.isNotEmpty) return token;
+      } on FormatException {
+        // handled below
+      }
+      throw ApiException('The password was changed, but the server sent no new session. Please sign in again.');
+    }
+    final err = _readError(response);
+    throw ApiException(
+      err.message ??
+          (response.statusCode == 429
+              ? 'Too many attempts. Please try again later.'
+              : response.statusCode >= 500
+                  ? 'Server error. Please try again later.'
+                  : 'Could not change the password. (Error ${response.statusCode})'),
+      status: response.statusCode,
+    );
+  }
+
+  /// Asks the server to email a 6-digit reset code. The answer is always the same,
+  /// whether or not the address belongs to an account.
+  static Future<void> requestResetCode(String email) async {
+    final response = await _send(
+      () => http.post(
+        Uri.parse('$baseUrl/auth/forgot-password'),
+        headers: _authHeaders(json: true),
+        body: jsonEncode({'contact': email}),
+      ),
+    );
+    if (response.statusCode == 200) return;
+    final err = _readError(response);
+    throw ApiException(
+      err.message ??
+          (response.statusCode == 429
+              ? 'Too many requests. Please wait a few minutes and try again.'
+              : 'Could not send a code. (Error ${response.statusCode})'),
+      status: response.statusCode,
+    );
+  }
+
+  /// Sets a new password using the emailed code.
+  static Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final response = await _send(
+      () => http.post(
+        Uri.parse('$baseUrl/auth/reset-password'),
+        headers: _authHeaders(json: true),
+        body: jsonEncode({'contact': email, 'code': code, 'newPassword': newPassword}),
+      ),
+    );
+    if (response.statusCode == 200) return;
+    final err = _readError(response);
+    throw ApiException(
+      err.message ??
+          (response.statusCode == 429
+              ? 'Too many attempts. Please wait a few minutes and try again.'
+              : 'Could not reset the password. (Error ${response.statusCode})'),
+      status: response.statusCode,
+    );
+  }
+
   /// A code typed without a GTIN looks like "/10/RW-0412" or "/10/RW-0412/21/ABCD2345EFGH".
   static final RegExp _noGtin = RegExp(r'^/10/([^/]+)(?:/21/([^/]+))?$');
 

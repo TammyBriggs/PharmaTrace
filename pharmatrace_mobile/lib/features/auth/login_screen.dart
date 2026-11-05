@@ -4,6 +4,8 @@ import '../../core/theme.dart';
 import '../../core/auth_manager.dart';
 import '../../data/services/api_service.dart';
 import '../../core/main_navigation.dart';
+import 'change_password_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final data = await ApiService.login(
         _contactController.text.trim(),
-        _passwordController.text.trim(),
+        _passwordController.text.trim(), // a pasted temporary password may carry a stray space
       );
 
       final user = data['user'];
@@ -41,6 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final name = user['name'];
       final sector = user['sector'];
       final profilePicUrl = user['profile_pic_url'];
+      final mustChange = user['must_change_password'] == true;
 
       if (token is! String || token.isEmpty) {
         throw Exception('The server did not return a valid login token.');
@@ -52,14 +55,16 @@ class _LoginScreenState extends State<LoginScreen> {
         name?.toString() ?? '',
         sector?.toString() ?? '',
         profilePicUrl?.toString(),
+        mustChange: mustChange,
       );
 
       if (!mounted) return;
 
+      // A temporary password from the regulator must be replaced before anything else works.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const MainNavigationScreen(),
+          builder: (context) => mustChange ? const ChangePasswordScreen(forced: true) : const MainNavigationScreen(),
         ),
       );
     } catch (e) {
@@ -139,7 +144,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 32),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () async {
+                            final email = await Navigator.push<String>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ForgotPasswordScreen(initialEmail: _contactController.text.trim()),
+                              ),
+                            );
+                            if (email != null && email.isNotEmpty && mounted) {
+                              setState(() => _contactController.text = email);
+                            }
+                          },
+                    child: Text('Forgot password?', style: TextStyle(color: context.colors.accent)),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleLogin,
                   child: _isLoading

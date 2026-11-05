@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { GASABO_SECTORS, sectorInfo } = require('../utils/sectors');
 
 const TZ = 'Africa/Kigali'; // CAT, UTC+2. scan_events.scanned_at is a naive UTC timestamp.
 const LOCAL = `((s.scanned_at AT TIME ZONE 'UTC') AT TIME ZONE '${TZ}')`;
@@ -131,4 +132,78 @@ const getScanAnalytics = async (req, res) => {
   }
 };
 
-module.exports = { getScanAnalytics };
+
+// ───────────────────────── risk map ─────────────────────────
+// One entry per Gasabo sector. Built only from scans made by signed-in pharmacists, whose sector is their pharmacy's
+// sector. Patients scan anonymously and carry no location, and no scan stores coordinates, so nothing here can point
+// at a person's home. The lat/lng are the middle of the sector (utils/sectors.js).
+const CONCERN = ['flagged', 'expired', 'revoked'];   // shown red on the map
+
+const getRiskMap = async (req, res) => {
+  try {
+    const key = req.query.range === 'all' ? 'all' : (RANGES[req.query.range] ? req.query.range : '30d');
+    const IN_RANGE = key === 'all' ? 'TRUE' : `${LOCAL} >= ${TODAY} - interval '${RANGES[key].days} days'`;
+
+    const [bySector, drugs, other] = await Promise.all([
+      pool.query(`SELECT s.sector,
+                         COUNT(*)::int AS total,
+                         COUNT(*) FILTER (WHERE s.verdict = 'authentic')::int AS authentic,
+                         COUNT(*) FILTER (WHERE s.verdict = 'flagged')::int AS flagged,
+                         COUNT(*) FILTER (WHERE s.verdict = 'expired')::int AS expired,
+                         COUNT(*) FILTER (WHERE s.verdict = 'revoked')::int AS revoked,
+                         COUNT(*) FILTER (WHERE s.verdict = 'duplicate')::int AS duplicate,
+                         COUNT(*) FILTER (WHERE s.verdict = 'pending')::int AS pending,
+                         COUNT(*) FILTER (WHERE s.verdict = 'not_found')::int AS not_found
+                    FROM scan_events s WHERE s.sector IS NOT NULL AND ${IN_RANGE} GROUP BY s.sector`),
+      pool.query(`SELECT s.sector, COALESCE(b.drug_name, 'Unknown product') AS drug, s.verdict, COUNT(*)::int AS n
+                    FROM scan_events s LEFT JOIN batches b ON b.id = s.batch_uuid
+                   WHERE s.sector IS NOT NULL AND s.batch_uuid IS NOT NULL AND ${IN_RANGE} GROUP BY 1, 2, 3`),
+      pool.query(`SELECT COUNT(*)::int AS n FROM scan_events s WHERE s.sector IS NULL AND ${IN_RANGE}`),
+    ]);
+
+    const counts = new Map(bySector.rows.map((r) => [sectorInfo(r.sector)?.name, r]));
+    const drugRows = new Map();
+    for (const r of drugs.rows) {
+      const name = sectorInfo(r.sector)?.name;
+      if (!name) continue;
+      if (!drugRows.has(name)) drugRows.set(name, []);
+      drugRows.get(name).push(r);
+    }
+
+    const sectors = GASABO_SECTORS.map(({ name, lat, lng }) => {
+      const c = counts.get(name);
+      const rows = drugRows.get(name) ?? [];
+      const concern = c ? c.flagged + c.expired + c.revoked : 0;
+      const byDrug = new Map();
+      for (const r of rows) byDrug.set(r.drug, (byDrug.get(r.drug) ?? 0) + r.n);
+      return {
+        sector: name, lat, lng,
+        total: c?.total ?? 0,
+        authentic: c?.authentic ?? 0, flagged: c?.flagged ?? 0, expired: c?.expired ?? 0, revoked: c?.revoked ?? 0,
+        duplicate: c?.duplicate ?? 0, pending: c?.pending ?? 0, notFound: c?.not_found ?? 0,
+        concern,
+        status: !c ? 'none' : concern > 0 ? 'concern' : 'ok',
+        topDrugs: [...byDrug].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([drug, scans]) => ({ drug, scans })),
+        concernDrugs: rows.filter((r) => CONCERN.includes(r.verdict))
+          .sort((a, b) => b.n - a.n).slice(0, 5).map((r) => ({ drug: r.drug, verdict: r.verdict, scans: r.n })),
+      };
+    });
+
+    res.json({
+      range: key,
+      label: key === 'all' ? 'All time' : RANGES[key].label,
+      sectors,
+      totals: {
+        scans: sectors.reduce((n, x) => n + x.total, 0),
+        concern: sectors.reduce((n, x) => n + x.concern, 0),
+        sectorsWithConcern: sectors.filter((x) => x.status === 'concern').length,
+        withoutLocation: other.rows[0].n,   // anonymous patient scans: counted elsewhere, never placed on the map
+      },
+    });
+  } catch (e) {
+    console.error('getRiskMap:', e.message);
+    res.status(500).json({ error: 'Could not load the risk map.' });
+  }
+};
+
+module.exports = { getScanAnalytics, getRiskMap };

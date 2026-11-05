@@ -16,6 +16,10 @@ class AuthManager {
   String pharmacistSector = "";
   String? jwtToken;
 
+  /// True while the account still has the temporary password a regulator issued.
+  /// The server only accepts a password change until this is cleared.
+  bool mustChangePassword = false;
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     isPharmacist = _prefs.getBool('isPharmacist') ?? false;
@@ -24,6 +28,7 @@ class AuthManager {
     profilePicPath = _prefs.getString('profilePicPath') ?? "";
     pharmacistSector = _prefs.getString('pharmacistSector') ?? "";
     jwtToken = _prefs.getString('jwtToken');
+    mustChangePassword = isPharmacist && (_prefs.getBool('mustChangePassword') ?? false);
   }
 
   Future<void> completeOnboarding() async {
@@ -31,8 +36,15 @@ class AuthManager {
       await _prefs.setBool('hasCompletedOnboarding', true);
     }
 
-  Future<void> loginAsPharmacist(String token, String name, String? sector, String? picUrl) async {
+  Future<void> loginAsPharmacist(
+    String token,
+    String name,
+    String? sector,
+    String? picUrl, {
+    bool mustChange = false,
+  }) async {
     isPharmacist = true;
+    mustChangePassword = mustChange;
     hasCompletedOnboarding = true;
     userName = name;
     jwtToken = token;
@@ -43,8 +55,18 @@ class AuthManager {
     await _prefs.setBool('hasCompletedOnboarding', true);
     await _prefs.setString('userName', name);
     await _prefs.setString('jwtToken', token);
+    await _prefs.setBool('mustChangePassword', mustChange);
     await _prefs.setString('pharmacistSector', pharmacistSector);
     if (picUrl != null) await _prefs.setString('profilePicPath', picUrl);
+  }
+
+  /// Called after the server accepted a new password. It sends a normal token
+  /// that replaces the restricted one from the temporary-password sign-in.
+  Future<void> completePasswordChange(String token) async {
+    jwtToken = token;
+    mustChangePassword = false;
+    await _prefs.setString('jwtToken', token);
+    await _prefs.setBool('mustChangePassword', false);
   }
 
   Future<void> updateProfile({String? name, String? picPath, String? sector}) async {
@@ -85,10 +107,12 @@ class AuthManager {
     isPharmacist = false;
     userName = "Patient Account";
     jwtToken = null;
+    mustChangePassword = false;
     profilePicPath = "";
     await _prefs.setBool('isPharmacist', false);
     await _prefs.setString('userName', userName);
     await _prefs.remove('jwtToken');
+    await _prefs.remove('mustChangePassword');
     await _prefs.remove('profilePicPath');
   }
 }

@@ -269,7 +269,8 @@ async function main() {
     COUNT(*) FILTER (WHERE status='flagged')::int AS flagged, COUNT(*) FILTER (WHERE status='revoked')::int AS revoked FROM batches`)).rows[0];
   console.log('Batches:', t, '| scans:', scanRows.length, '| packs marked sold:', sold.rowCount, '| flag reports:', flaggedBatches.length);
   console.log(`Manufacturer logins: <slug>@demo.pharmatrace.rw, password: ${password}`);
-  console.log('Next: in the dashboard add "Macleods Pharmaceuticals Limited" with wallet #2 (0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC).');
+  console.log('Next: in the dashboard add "Macleods Pharmaceuticals Limited" with wallet #2 (0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC)');
+  console.log('and a login email. The dashboard shows its temporary password once; the manufacturer changes it at first sign-in.');
   await pool.end();
 }
 

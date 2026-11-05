@@ -26,6 +26,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/overview', overviewRoutes);
 app.use('/api/manufacturers', manufacturerRoutes);
+app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/chain', chainRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/batches', batchRoutes);

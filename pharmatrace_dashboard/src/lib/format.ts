@@ -22,3 +22,11 @@ const CATEGORY_LABEL: Record<string, string> = {
   Antimalarial: 'Antimalarials', Antibiotic: 'Antibiotics', ARV: 'ARVs',
 };
 export const categoryLabel = (c: string) => CATEGORY_LABEL[c] ?? c;
+
+// ISO instant ("2026-11-05T18:20:11Z") -> "05 Nov 2026, 20:20" in Kigali time, whatever the viewer's time zone is.
+export function fmtDateTime(iso: string): string {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Kigali', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute}`;
+}

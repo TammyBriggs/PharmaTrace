@@ -20,6 +20,8 @@ const LABEL: Record<string, string> = {
   'batch.approve': 'Approved batch', 'batch.flag': 'Flagged batch', 'batch.flag_resolve': 'Resolved flag',
   'batch.revoke': 'Revoked batch', 'batch.reinstate': 'Reinstated batch',
   'manufacturer.register': 'Registered manufacturer', 'manufacturer.revoke': 'Revoked manufacturer',
+  'account.create': 'Created account', 'account.reset': 'Reset password',
+  'account.activate': 'Reactivated account', 'account.deactivate': 'Deactivated account',
   'report.review': 'Reviewed flag report', 'report.close': 'Closed flag report', 'report.reopen': 'Reopened flag report',
 };
 export const actionLabel = (a: string) => LABEL[a] ?? a;

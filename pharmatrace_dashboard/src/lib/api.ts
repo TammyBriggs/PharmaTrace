@@ -29,6 +29,7 @@ export function saveSession(s: Session, remember: boolean) {
   clearSession();
   (remember ? localStorage : sessionStorage).setItem(KEY, JSON.stringify(s));
 }
+export const sessionIsRemembered = () => localStorage.getItem(KEY) !== null;
 export function clearSession() {
   localStorage.removeItem(KEY);
   sessionStorage.removeItem(KEY);

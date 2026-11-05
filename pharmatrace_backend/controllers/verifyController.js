@@ -4,6 +4,7 @@ const pool = require('../config/db');
 const { getProvider, assertDeployed } = require('../config/chain');
 const { recordAudit } = require('../utils/audit');
 const { parseDigitalLink } = require('../utils/gs1');
+const { scanLimiter } = require('../middleware/rateLimit');
 
 // ───────────────────────── verdict logic ─────────────────────────
 const SEVERITY = { authentic: 1, pending: 2, expired: 3, flagged: 4, revoked: 5 };
@@ -119,18 +120,8 @@ function optionalAuth(req, _res, next) {
   next();
 }
 
-// Small in-memory limiter for the public endpoints (the full rate-limiting task replaces this).
-const hits = new Map();
-function limiter(max = 60, windowMs = 60_000) {
-  return (req, res, next) => {
-    const key = req.ip, now = Date.now();
-    const e = hits.get(key);
-    if (!e || now > e.reset) hits.set(key, { n: 1, reset: now + windowMs });
-    else if (++e.n > max) { res.set('Retry-After', String(Math.ceil((e.reset - now) / 1000))); return res.status(429).json({ error: 'Too many scans. Please wait a moment and try again.' }); }
-    if (hits.size > 5000) for (const [k, v] of hits) if (now > v.reset) hits.delete(k);
-    next();
-  };
-}
+// Rate limit for the public scan endpoints (express-rate-limit; see middleware/rateLimit.js).
+const limiter = (max = 60, windowMs = 60_000) => scanLimiter(max, windowMs);
 
 const partsFromRequest = (src) => {
   if (src.code) return parseDigitalLink(src.code);
