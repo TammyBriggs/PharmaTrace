@@ -96,7 +96,10 @@ class ApiService {
       case 403:
         throw Exception('You are not authorized to sign in.');
       case 404:
-        throw Exception('Login service not found.');
+        throw Exception(
+          'The PharmaTrace server was not found at ${Uri.parse(baseUrl).host}. '
+          'If you are testing with a tunnel, it may have stopped. Otherwise check the server address the app was built with.',
+        );
       case 429:
         throw Exception('Too many attempts. Please try again later.');
       default:

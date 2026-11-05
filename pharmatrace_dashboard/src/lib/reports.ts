@@ -12,12 +12,12 @@ export interface ReportDetail {
   reportedAt: string; reviewedAt: string | null; reviewNote: string | null;
   reporterName: string | null; reporterSector: string | null; reviewerName: string | null;
   batchId: string | null; drug: string | null; batchStatus: string | null; manufacturer: string | null;
-  imageUrl: string | null;
+  imageUrl: string | null; hasImage: boolean;
 }
 
 const csvCell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 export function reportsCsv(rows: ReportRow[]) {
-  const head = ['Batch', 'Drug', 'Reason', 'Sector', 'Investigation', 'Reported at'];
-  const lines = rows.map((r) => [r.batchNo, r.drug, r.reason, r.sector, r.state === 'closed' ? 'Closed' : 'Under review', r.reportedAt].map(csvCell).join(','));
+  const head = ['Batch', 'Drug', 'Reason', 'Sector', 'Photo attached', 'Investigation', 'Reported at'];
+  const lines = rows.map((r) => [r.batchNo, r.drug, r.reason, r.sector, r.hasImage ? 'Yes' : 'No', r.state === 'closed' ? 'Closed' : 'Under review', r.reportedAt].map(csvCell).join(','));
   return [head.map(csvCell).join(','), ...lines].join('\r\n');
 }

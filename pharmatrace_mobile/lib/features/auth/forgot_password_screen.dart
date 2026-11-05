@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/theme.dart';
+import '../../core/widgets/password_field.dart';
 import '../../core/widgets/password_rules.dart';
 import '../../data/services/api_service.dart';
 
@@ -134,24 +135,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           decoration: const InputDecoration(labelText: '6-digit code', counterText: '', border: OutlineInputBorder()),
         ),
         const SizedBox(height: 16),
-        TextField(
+        PasswordField(
           controller: _new,
-          obscureText: true,
-          enableSuggestions: false,
-          autocorrect: false,
+          label: 'New password',
+          textInputAction: TextInputAction.next,
           onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(labelText: 'New password', border: OutlineInputBorder()),
         ),
         const SizedBox(height: 8),
         PasswordRulesList(password: _new.text),
         const SizedBox(height: 16),
-        TextField(
+        PasswordField(
           controller: _again,
-          obscureText: true,
-          enableSuggestions: false,
-          autocorrect: false,
+          label: 'Repeat the new password',
+          textInputAction: TextInputAction.done,
           onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(labelText: 'Repeat the new password', border: OutlineInputBorder()),
         ),
         if (mismatch)
           Padding(

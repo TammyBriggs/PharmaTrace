@@ -64,7 +64,7 @@ export default function Login() {
             <button type="button" onClick={() => setShow((s) => !s)}
               aria-label={show ? 'Hide password' : 'Show password'}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-brand">
-              {show ? <Eye size={18} /> : <EyeOff size={18} />}
+              {show ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
             </button>
           </div>
         </div>

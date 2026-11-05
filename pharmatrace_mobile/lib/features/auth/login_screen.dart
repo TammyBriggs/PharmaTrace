@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 import '../../core/auth_manager.dart';
 import '../../data/services/api_service.dart';
 import '../../core/main_navigation.dart';
+import '../../core/widgets/password_field.dart';
 import 'change_password_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -127,13 +128,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                PasswordField(
                   controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                  ),
+                  label: 'Password',
+                  autofillHints: const [AutofillHints.password],
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: _isLoading ? null : _handleLogin,
                 ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 16),

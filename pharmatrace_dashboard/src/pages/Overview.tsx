@@ -198,10 +198,7 @@ export default function Overview() {
             </Card>
 
             <Card className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Recent alerts</h2>
-                <Link to="/flag-reports" className="text-sm font-semibold text-brand">View all</Link>
-              </div>
+              <h2 className="text-lg font-semibold">Recent alerts</h2>
               {loading ? <Skeleton className="h-32 w-full" /> : data && data.alerts.length > 0 ? (
                 <ul className="flex flex-col divide-y divide-line">
                   {data.alerts.map((a, i) => (

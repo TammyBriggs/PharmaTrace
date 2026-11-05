@@ -123,7 +123,7 @@ const getReviewDetail = async (req, res) => {
        WHERE fr.id = $1`, [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Report not found' });
     const { image_key, ...r } = rows[0];
-    res.json({ ...r, state: stateOf(r.status), imageUrl: image_key ? await generatePresignedUrl(image_key) : null });
+    res.json({ ...r, state: stateOf(r.status), hasImage: !!image_key, imageUrl: image_key ? await generatePresignedUrl(image_key) : null });
   } catch (e) {
     console.error('getReviewDetail:', e.message);
     res.status(500).json({ error: 'Could not load the report' });

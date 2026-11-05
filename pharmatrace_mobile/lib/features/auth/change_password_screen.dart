@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth_manager.dart';
 import '../../core/main_navigation.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/password_field.dart';
 import '../../core/widgets/password_rules.dart';
 import '../../data/services/api_service.dart';
 import '../onboarding/onboarding_screen.dart';
@@ -24,7 +25,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _again = TextEditingController();
 
   bool _busy = false;
-  bool _show = false;
   String? _error;
 
   @override
@@ -77,19 +77,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 
-  Widget _field(String label, TextEditingController controller, {String? helper, TextInputAction? action}) {
-    return TextField(
+  Widget _field(String label, TextEditingController controller, {TextInputAction? action}) {
+    return PasswordField(
       controller: controller,
-      obscureText: !_show,
-      enableSuggestions: false,
-      autocorrect: false,
+      label: label,
       textInputAction: action ?? TextInputAction.next,
       onChanged: (_) => setState(() {}),
-      decoration: InputDecoration(
-        labelText: label,
-        helperText: helper,
-        border: const OutlineInputBorder(),
-      ),
     );
   }
 
@@ -144,14 +137,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       style: TextStyle(color: c.dangerFg, fontSize: 12),
                     ),
                   ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => setState(() => _show = !_show),
-                    icon: Icon(_show ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
-                    label: Text(_show ? 'Hide passwords' : 'Show passwords'),
-                  ),
-                ),
                 if (_error != null) ...[
                   const SizedBox(height: 8),
                   Text(_error!, style: TextStyle(color: c.dangerFg)),

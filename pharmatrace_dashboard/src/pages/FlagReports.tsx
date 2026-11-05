@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CircleCheck, Download, ExternalLink, Loader2, Search, SearchX, TriangleAlert } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleCheck, Download, ExternalLink, ImageIcon, Loader2, Search, SearchX, TriangleAlert } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { num } from '../lib/format';
@@ -25,6 +25,23 @@ export default function FlagReports() {
   const [banner, setBanner] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportErr, setExportErr] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState<string | null>(null);
+  const [photoErr, setPhotoErr] = useState<string | null>(null);
+
+  // The photo link is created when you click, so it never arrives already expired.
+  // The tab is opened first (inside the click) so the browser does not block it as a pop-up.
+  async function openPhoto(id: string) {
+    setPhotoErr(null); setPhotoBusy(id);
+    const tab = window.open('', '_blank');
+    try {
+      const d = await api<ReportDetail>(`/reports/review/${id}`);
+      if (!d.imageUrl) throw new Error('The photo could not be loaded. Try again in a moment.');
+      if (tab) { tab.opener = null; tab.location.href = d.imageUrl; } else window.location.href = d.imageUrl;
+    } catch (e) {
+      tab?.close();
+      setPhotoErr(e instanceof Error ? e.message : 'The photo could not be loaded.');
+    } finally { setPhotoBusy(null); }
+  }
 
   useEffect(() => {
     const t = setTimeout(() => { const v = q.trim(); if (v !== search) { setSearch(v); setPage(1); } }, 300);   // only reset the page when the search really changed
@@ -110,25 +127,27 @@ export default function FlagReports() {
         </label>
       </div>
 
+      {photoErr && <p role="alert" className="text-sm text-danger">{photoErr}</p>}
+
       {error ? <ErrorState message={error} onRetry={reload} /> : (
         <Card className="overflow-hidden !p-0">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] table-fixed text-sm">
+            <table className="w-full min-w-[1000px] table-fixed text-sm">
               <thead>
                 <tr className="h-12 bg-canvas text-left text-xs font-semibold text-mute">
-                  <th className="w-[15%] px-4">Batch</th><th className="w-[23%] px-4">Drug</th><th className="w-[21%] px-4">Reason</th>
-                  <th className="w-[15%] px-4">Sector</th><th className="w-[14%] px-4">Investigation</th><th className="w-[12%] px-4">Action</th>
+                  <th className="w-[13%] px-4">Batch</th><th className="w-[20%] px-4">Drug</th><th className="w-[18%] px-4">Reason</th>
+                  <th className="w-[12%] px-4">Sector</th><th className="w-[11%] px-4">Photo</th><th className="w-[14%] px-4">Investigation</th><th className="w-[12%] px-4">Action</th>
                 </tr>
               </thead>
               <tbody className={loading && data ? 'opacity-60' : ''}>
                 {first && (
-                  <tr><td colSpan={6} className="p-0">
+                  <tr><td colSpan={7} className="p-0">
                     <div className="flex items-center gap-3 p-4 text-sm text-brand"><Loader2 size={20} className="animate-spin" aria-hidden /> Loading records…</div>
                   </td></tr>
                 )}
                 {first && Array.from({ length: 6 }, (_, i) => (
                   <tr key={i} className="h-16">
-                    {['w-[85%]', 'w-[90%]', 'w-[88%]', 'w-[85%]', 'w-[82%]', 'w-[77%]'].map((w, j) => <td key={j} className="px-4"><Skeleton className={`h-3 ${w}`} /></td>)}
+                    {['w-[85%]', 'w-[90%]', 'w-[88%]', 'w-[85%]', 'w-[60%]', 'w-[82%]', 'w-[77%]'].map((w, j) => <td key={j} className="px-4"><Skeleton className={`h-3 ${w}`} /></td>)}
                   </tr>
                 ))}
                 {data?.rows.map((r) => (
@@ -137,6 +156,14 @@ export default function FlagReports() {
                     <td className="px-4 py-3">{r.drug ?? <span className="text-mute">Unregistered batch</span>}</td>
                     <td className="px-4 py-3">{r.reason}</td>
                     <td className="px-4 py-3">{r.sector ?? '—'}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {r.hasImage ? (
+                        <button onClick={() => openPhoto(r.id)} disabled={photoBusy === r.id}
+                          className="inline-flex items-center gap-1 whitespace-nowrap font-semibold text-brand hover:underline disabled:opacity-60">
+                          {photoBusy === r.id ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <ImageIcon size={14} aria-hidden />} View photo
+                        </button>
+                      ) : <span className="text-mute">No photo</span>}
+                    </td>
                     <td className="px-4 py-3"><StatusChip kind={r.state} /></td>
                     <td className="px-4 py-3 text-xs">
                       <button onClick={() => setOpenId(r.id)} className="whitespace-nowrap text-left text-brand hover:underline">
@@ -224,10 +251,19 @@ function ReviewModal({ id, onClose, onDone }: { id: string; onClose: () => void;
             {data.reviewNote && row('Review note', data.reviewNote)}
           </dl>
 
-          {data.imageUrl && (
-            <a href={data.imageUrl} target="_blank" rel="noreferrer" className="block">
-              <img src={data.imageUrl} alt="Photo attached to the report" className="max-h-64 w-full rounded-lg border border-line object-contain" />
-            </a>
+          {data.imageUrl ? (
+            <div className="flex flex-col gap-2">
+              <a href={data.imageUrl} target="_blank" rel="noreferrer" className="block">
+                <img src={data.imageUrl} alt="Photo attached to the report" className="max-h-64 w-full rounded-lg border border-line object-contain" />
+              </a>
+              <a href={data.imageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">
+                Open photo full size <ExternalLink size={14} aria-hidden />
+              </a>
+            </div>
+          ) : data.hasImage ? (
+            <p className="rounded-lg bg-canvas p-3 text-sm text-mute">A photo was attached, but it could not be loaded right now. Close this window and try again.</p>
+          ) : (
+            <p className="text-sm text-mute">No photo was attached to this report.</p>
           )}
 
           <div className="flex flex-col gap-2">

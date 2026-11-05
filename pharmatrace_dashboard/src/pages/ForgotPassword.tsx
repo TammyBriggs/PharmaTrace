@@ -4,6 +4,7 @@ import { ArrowLeft, CircleCheck, ShieldPlus } from 'lucide-react';
 import { api } from '../lib/api';
 import { PASSWORD_RULES, passwordOk } from '../lib/password';
 import { btnPrimary } from '../components/Modal';
+import PasswordInput from '../components/PasswordInput';
 
 const field =
   'h-11 w-full rounded-lg border border-line bg-white p-3 text-sm text-ink outline-none ' +
@@ -71,12 +72,12 @@ export default function ForgotPassword() {
             </div>
             <div className="flex flex-col gap-2">
               <label htmlFor="fp-pw" className="text-sm font-semibold">New password</label>
-              <input id="fp-pw" type="password" autoComplete="new-password" className={field} value={pw} onChange={(e) => setPw(e.target.value)} />
+              <PasswordInput id="fp-pw" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />
               <p className="text-xs text-mute">{PASSWORD_RULES.map((r) => r.label).join(' · ')}</p>
             </div>
             <div className="flex flex-col gap-2">
               <label htmlFor="fp-again" className="text-sm font-semibold">Repeat the new password</label>
-              <input id="fp-again" type="password" autoComplete="new-password" className={field} value={again} onChange={(e) => setAgain(e.target.value)} />
+              <PasswordInput id="fp-again" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
               {again && again !== pw && <p className="text-xs text-danger">The two passwords do not match.</p>}
             </div>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}

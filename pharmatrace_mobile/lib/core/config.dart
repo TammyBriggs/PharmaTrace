@@ -1,7 +1,8 @@
 class AppConfig {
   static const String _raw = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://chomp-armhole-scorebook.ngrok-free.dev/api', // Physical Device
+    // The hosted backend. Override with --dart-define=API_BASE_URL=... for a local server or an ngrok tunnel.
+    defaultValue: 'https://pharmatrace-bf19.onrender.com/api',
   );
 
   /// The server address with "/api" on the end, so `--dart-define=API_BASE_URL=https://xyz.ngrok-free.dev`
