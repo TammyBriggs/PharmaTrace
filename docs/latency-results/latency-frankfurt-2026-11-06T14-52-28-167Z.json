@@ -1,0 +1,86 @@
+{
+  "label": "frankfurt",
+  "mode": "chain reads OFF",
+  "api": "https://pharmatrace-v2.onrender.com",
+  "web": null,
+  "runsPerTest": 20,
+  "gapMs": 1200,
+  "idleMinutes": 0,
+  "freshConnections": false,
+  "startedAt": "2026-11-06T14:52:28.167Z",
+  "finishedAt": "2026-11-06T14:54:34.264Z",
+  "results": [
+    {
+      "name": "Health check (no database)",
+      "url": "https://pharmatrace-v2.onrender.com/api/health",
+      "firstMs": 1155,
+      "firstSetupMs": 483,
+      "firstWaitMs": 649,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [],
+      "minMs": 259,
+      "medianMs": 274,
+      "meanMs": 334,
+      "p95Ms": 495,
+      "maxMs": 514
+    },
+    {
+      "name": "Scan batch RW-2026-0067",
+      "url": "https://pharmatrace-v2.onrender.com/api/verify?gtin=06102129753721&batch=RW-2026-0067",
+      "firstMs": 672,
+      "firstSetupMs": 0,
+      "firstWaitMs": 672,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [
+        "database"
+      ],
+      "minMs": 278,
+      "medianMs": 292,
+      "meanMs": 358,
+      "p95Ms": 507,
+      "maxMs": 508
+    },
+    {
+      "name": "Scan pack 3JGD4MC3UJ3E",
+      "url": "https://pharmatrace-v2.onrender.com/api/verify?gtin=06102129753721&batch=RW-2026-0067&serial=3JGD4MC3UJ3E",
+      "firstMs": 340,
+      "firstSetupMs": 0,
+      "firstWaitMs": 339,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [
+        "database"
+      ],
+      "minMs": 274,
+      "medianMs": 285,
+      "meanMs": 333,
+      "p95Ms": 475,
+      "maxMs": 704
+    },
+    {
+      "name": "Batch history",
+      "url": "https://pharmatrace-v2.onrender.com/api/verify/history?gtin=06102129753721&batch=RW-2026-0067",
+      "firstMs": 359,
+      "firstSetupMs": 0,
+      "firstWaitMs": 358,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [],
+      "minMs": 259,
+      "medianMs": 285,
+      "meanMs": 336,
+      "p95Ms": 462,
+      "maxMs": 516
+    }
+  ]
+}

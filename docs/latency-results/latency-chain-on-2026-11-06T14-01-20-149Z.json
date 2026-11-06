@@ -1,0 +1,122 @@
+{
+  "label": "chain-on",
+  "mode": "chain reads ON",
+  "api": "https://pharmatrace-bf19.onrender.com",
+  "web": "https://pharma-trace-gamma.vercel.app",
+  "runsPerTest": 20,
+  "gapMs": 1200,
+  "idleMinutes": 16,
+  "freshConnections": false,
+  "startedAt": "2026-11-06T14:01:20.149Z",
+  "finishedAt": "2026-11-06T14:05:12.068Z",
+  "results": [
+    {
+      "name": "Health check (no database)",
+      "url": "https://pharmatrace-bf19.onrender.com/api/health",
+      "firstMs": 1087,
+      "firstSetupMs": 310,
+      "firstWaitMs": 547,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [],
+      "minMs": 381,
+      "medianMs": 521,
+      "meanMs": 544,
+      "p95Ms": 885,
+      "maxMs": 1177
+    },
+    {
+      "name": "Scan batch RW-2026-0067",
+      "url": "https://pharmatrace-bf19.onrender.com/api/verify?gtin=06102129753721&batch=RW-2026-0067",
+      "firstMs": 1698,
+      "firstSetupMs": 0,
+      "firstWaitMs": 1697,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [
+        "blockchain + database"
+      ],
+      "minMs": 718,
+      "medianMs": 782,
+      "meanMs": 791,
+      "p95Ms": 867,
+      "maxMs": 898
+    },
+    {
+      "name": "Scan pack 3JGD4MC3UJ3E",
+      "url": "https://pharmatrace-bf19.onrender.com/api/verify?gtin=06102129753721&batch=RW-2026-0067&serial=3JGD4MC3UJ3E",
+      "firstMs": 722,
+      "firstSetupMs": 0,
+      "firstWaitMs": 721,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [
+        "blockchain + database"
+      ],
+      "minMs": 721,
+      "medianMs": 829,
+      "meanMs": 814,
+      "p95Ms": 898,
+      "maxMs": 900
+    },
+    {
+      "name": "Batch history",
+      "url": "https://pharmatrace-bf19.onrender.com/api/verify/history?gtin=06102129753721&batch=RW-2026-0067",
+      "firstMs": 687,
+      "firstSetupMs": 0,
+      "firstWaitMs": 686,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [],
+      "minMs": 665,
+      "medianMs": 696,
+      "meanMs": 748,
+      "p95Ms": 829,
+      "maxMs": 1475
+    },
+    {
+      "name": "Dashboard page (Vercel, static)",
+      "url": "https://pharma-trace-gamma.vercel.app/",
+      "firstMs": 346,
+      "firstSetupMs": 221,
+      "firstWaitMs": 120,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [],
+      "minMs": 111,
+      "medianMs": 200,
+      "meanMs": 199,
+      "p95Ms": 246,
+      "maxMs": 251
+    },
+    {
+      "name": "Scan through Vercel /api forward",
+      "url": "https://pharma-trace-gamma.vercel.app/api/verify?gtin=06102129753721&batch=RW-2026-0067",
+      "firstMs": 2334,
+      "firstSetupMs": 0,
+      "firstWaitMs": 2332,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [
+        "blockchain + database"
+      ],
+      "minMs": 772,
+      "medianMs": 898,
+      "meanMs": 928,
+      "p95Ms": 1420,
+      "maxMs": 1563
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "label": "frankfurt",
+  "mode": "chain reads ON",
+  "api": "https://pharmatrace-v2.onrender.com",
+  "web": null,
+  "runsPerTest": 20,
+  "gapMs": 1200,
+  "idleMinutes": 0,
+  "freshConnections": false,
+  "startedAt": "2026-11-06T15:09:18.299Z",
+  "finishedAt": "2026-11-06T15:11:25.730Z",
+  "results": [
+    {
+      "name": "Health check (no database)",
+      "url": "https://pharmatrace-v2.onrender.com/api/health",
+      "firstMs": 601,
+      "firstSetupMs": 292,
+      "firstWaitMs": 287,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [],
+      "minMs": 256,
+      "medianMs": 268,
+      "meanMs": 313,
+      "p95Ms": 481,
+      "maxMs": 645
+    },
+    {
+      "name": "Scan batch RW-2026-0067",
+      "url": "https://pharmatrace-v2.onrender.com/api/verify?gtin=06102129753721&batch=RW-2026-0067",
+      "firstMs": 1303,
+      "firstSetupMs": 0,
+      "firstWaitMs": 1302,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [
+        "blockchain + database"
+      ],
+      "minMs": 310,
+      "medianMs": 388,
+      "meanMs": 395,
+      "p95Ms": 511,
+      "maxMs": 516
+    },
+    {
+      "name": "Scan pack 3JGD4MC3UJ3E",
+      "url": "https://pharmatrace-v2.onrender.com/api/verify?gtin=06102129753721&batch=RW-2026-0067&serial=3JGD4MC3UJ3E",
+      "firstMs": 327,
+      "firstSetupMs": 0,
+      "firstWaitMs": 326,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [
+        "blockchain + database"
+      ],
+      "minMs": 307,
+      "medianMs": 322,
+      "meanMs": 395,
+      "p95Ms": 539,
+      "maxMs": 561
+    },
+    {
+      "name": "Batch history",
+      "url": "https://pharmatrace-v2.onrender.com/api/verify/history?gtin=06102129753721&batch=RW-2026-0067",
+      "firstMs": 359,
+      "firstSetupMs": 0,
+      "firstWaitMs": 357,
+      "firstStatus": 200,
+      "ok": 20,
+      "rateLimited": 0,
+      "failed": 0,
+      "sources": [],
+      "minMs": 261,
+      "medianMs": 273,
+      "meanMs": 332,
+      "p95Ms": 480,
+      "maxMs": 496
+    }
+  ]
+}
