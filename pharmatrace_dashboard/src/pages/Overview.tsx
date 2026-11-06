@@ -115,7 +115,7 @@ export default function Overview() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeading title="Overview" subtitle="Supply chain integrity across Rwanda"
+      <PageHeading title="Overview" subtitle="Supply chain integrity across Gasabo district Kigali"
         right={
           <div className="flex h-10 items-center gap-2 rounded-lg border border-line px-3 text-sm">
             <CalendarDays size={16} className="text-brand" aria-hidden /> {fmtDay(new Date())}
