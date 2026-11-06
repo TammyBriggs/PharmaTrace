@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title  PharmaTrace
@@ -13,6 +14,12 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
  *         wallet addresses, timestamps, status flags and keccak256 hashes.
  *         Names, licence numbers, drug details and flag reasons stay in the
  *         off-chain PostgreSQL database; only their hashes are anchored here.
+ *
+ *         Pack-level authenticity: when a batch is submitted, the manufacturer's
+ *         transaction also carries the Merkle root of every pack serial in that
+ *         batch. Individual serials are never stored on-chain (that would cost gas
+ *         per pack), yet any one pack can be proven to belong to the batch with a
+ *         short proof, and the proof is checked by this contract (verifyPack).
  */
 contract PharmaTrace is AccessControl, Pausable {
     // ───────────────────────────── Roles ─────────────────────────────
@@ -33,6 +40,8 @@ contract PharmaTrace is AccessControl, Pausable {
         uint64  expiryDate;
         uint64  approvedAt;
         BatchStatus status;
+        bytes32 serialRoot;   // Merkle root over every pack serial in the batch (see packLeaf)
+        uint32  serialCount;  // how many serials the tree was built from
     }
 
     // ───────────────────────────── State ─────────────────────────────
@@ -45,7 +54,8 @@ contract PharmaTrace is AccessControl, Pausable {
     event ManufacturerRevoked(address indexed manufacturer, address indexed regulator);
     event BatchSubmitted(
         bytes32 indexed batchId, address indexed manufacturer,
-        bytes32 metadataHash, uint64 mfgDate, uint64 expiryDate
+        bytes32 metadataHash, uint64 mfgDate, uint64 expiryDate,
+        bytes32 serialRoot, uint32 serialCount
     );
     event BatchApproved(bytes32 indexed batchId, address indexed regulator);
     event BatchFlagged(bytes32 indexed batchId, address indexed regulator, bytes32 reasonHash);
@@ -95,12 +105,16 @@ contract PharmaTrace is AccessControl, Pausable {
     }
 
     // ─────────────────── Manufacturer: submit a batch ────────────────
+    /// @param serialRoot  Merkle root of the pack serials (leaf = packLeaf(batchId, serial)), so any pack can later be proven.
+    /// @param serialCount Number of serials in that tree.
     /// @return batchId keccak256(manufacturer, batchNo). This is what the QR code encodes.
     function submitBatch(
         string calldata batchNo,
         bytes32 metadataHash,
         uint64 mfgDate,
-        uint64 expiryDate
+        uint64 expiryDate,
+        bytes32 serialRoot,
+        uint32 serialCount
     )
         external
         onlyRole(MANUFACTURER_ROLE)
@@ -110,6 +124,7 @@ contract PharmaTrace is AccessControl, Pausable {
         uint256 len = bytes(batchNo).length;
         if (len == 0 || len > 64) revert InvalidInput();
         if (metadataHash == bytes32(0)) revert InvalidInput();
+        if (serialRoot == bytes32(0) || serialCount == 0) revert InvalidInput();
         if (expiryDate <= mfgDate || expiryDate <= block.timestamp) revert InvalidInput();
 
         batchId = computeBatchId(msg.sender, batchNo);
@@ -121,9 +136,11 @@ contract PharmaTrace is AccessControl, Pausable {
             mfgDate: mfgDate,
             expiryDate: expiryDate,
             approvedAt: 0,
-            status: BatchStatus.Pending
+            status: BatchStatus.Pending,
+            serialRoot: serialRoot,
+            serialCount: serialCount
         });
-        emit BatchSubmitted(batchId, msg.sender, metadataHash, mfgDate, expiryDate);
+        emit BatchSubmitted(batchId, msg.sender, metadataHash, mfgDate, expiryDate, serialRoot, serialCount);
     }
 
     // ─────────────────── Regulator: approve / flag / resolve / recall ──
@@ -183,15 +200,27 @@ contract PharmaTrace is AccessControl, Pausable {
     /// @notice Called by the Node API on every QR scan. Free, read-only, open to everyone.
     function verifyBatch(bytes32 batchId) external view returns (Verdict verdict, Batch memory batch) {
         batch = _batches[batchId];
+        verdict = _verdictOf(batch);
+    }
 
-        if (batch.status == BatchStatus.None)    return (Verdict.NotFound, batch);
-        if (batch.status == BatchStatus.Flagged) return (Verdict.Flagged, batch);
-        if (batch.status == BatchStatus.Revoked) return (Verdict.BatchRevoked, batch);
-        if (!hasRole(MANUFACTURER_ROLE, batch.manufacturer)) return (Verdict.ManufacturerRevoked, batch);
-        if (batch.status == BatchStatus.Pending) return (Verdict.Pending, batch);
-        if (block.timestamp > batch.expiryDate)  return (Verdict.Expired, batch);
+    /// @notice Verifies ONE pack: the batch verdict, plus proof that this serial belongs to the batch.
+    /// @dev    A serial that is not in the batch's Merkle tree returns (NotFound, false) whatever the batch status,
+    ///         so a made-up serial on a genuine batch cannot pass as authentic.
+    /// @param proof Sibling hashes from the leaf up to the root (built off-chain from the batch's serials).
+    function verifyPack(bytes32 batchId, string calldata serial, bytes32[] calldata proof)
+        external
+        view
+        returns (Verdict verdict, bool serialAuthorised)
+    {
+        Batch memory batch = _batches[batchId];
+        if (batch.status == BatchStatus.None) return (Verdict.NotFound, false);
+        serialAuthorised = MerkleProof.verifyCalldata(proof, batch.serialRoot, packLeaf(batchId, serial));
+        verdict = serialAuthorised ? _verdictOf(batch) : Verdict.NotFound;
+    }
 
-        return (Verdict.Authentic, batch);
+    /// @notice The Merkle leaf for one pack. Binds the serial to its batch, so a serial from another batch cannot be reused.
+    function packLeaf(bytes32 batchId, string calldata serial) public pure returns (bytes32) {
+        return keccak256(abi.encode(batchId, serial));
     }
 
     function computeBatchId(address manufacturer, string calldata batchNo) public pure returns (bytes32) {
@@ -203,6 +232,16 @@ contract PharmaTrace is AccessControl, Pausable {
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) { _unpause(); }
 
     // ───────────────────────────── Internal ──────────────────────────
+    function _verdictOf(Batch memory batch) private view returns (Verdict) {
+        if (batch.status == BatchStatus.None)    return Verdict.NotFound;
+        if (batch.status == BatchStatus.Flagged) return Verdict.Flagged;
+        if (batch.status == BatchStatus.Revoked) return Verdict.BatchRevoked;
+        if (!hasRole(MANUFACTURER_ROLE, batch.manufacturer)) return Verdict.ManufacturerRevoked;
+        if (batch.status == BatchStatus.Pending) return Verdict.Pending;
+        if (block.timestamp > batch.expiryDate)  return Verdict.Expired;
+        return Verdict.Authentic;
+    }
+
     function _requireBatch(bytes32 batchId) private view returns (Batch storage b) {
         b = _batches[batchId];
         if (b.status == BatchStatus.None) revert BatchNotFound();

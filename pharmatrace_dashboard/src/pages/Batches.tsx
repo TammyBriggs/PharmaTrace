@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useAuth } from '../auth/AuthContext';
 import { explain, useWallet, type WalletErrorCode } from '../lib/wallet';
+import TxLink from '../components/TxLink';
 import { addMonths, chipFor, shortHash, type BatchContext, type BatchDetail, type BatchList, type BStatus, type Product } from '../lib/batches';
 import { fmtDay, num } from '../lib/format';
 import { Card, ErrorState, PageHeading, Skeleton, StatusChip } from '../components/ui';
@@ -229,13 +230,13 @@ function SubmitModal({ ctx, onClose, onSubmitted }: { ctx: BatchContext; onClose
     setRun({ stage: 'prepare' });
     let id: string | undefined, hash: string | undefined;
     try {
-      const prep = await api<{ id: string; chain: { batchNo: string; metadataHash: string; mfgDate: number; expiryDate: number } }>('/batches', {
+      const prep = await api<{ id: string; chain: { batchNo: string; metadataHash: string; mfgDate: number; expiryDate: number; serialRoot: string; serialCount: number } }>('/batches', {
         method: 'POST', body: JSON.stringify({ productId: product.id, batchNo: f.batchNo, mfgDate: f.mfgDate, quantity: Number(f.quantity) }),
       });
       id = prep.id;
       setRun({ stage: 'wallet', id });
       const contract = await ensureReady();
-      const sent = await contract.submitBatch(prep.chain.batchNo, prep.chain.metadataHash, prep.chain.mfgDate, prep.chain.expiryDate);
+      const sent = await contract.submitBatch(prep.chain.batchNo, prep.chain.metadataHash, prep.chain.mfgDate, prep.chain.expiryDate, prep.chain.serialRoot, prep.chain.serialCount);
       hash = sent.hash as string;
       setRun({ stage: 'chain', id, hash });
       await sent.wait();
@@ -266,7 +267,7 @@ function SubmitModal({ ctx, onClose, onSubmitted }: { ctx: BatchContext; onClose
           <div className="flex items-center gap-3"><CircleCheck size={40} className="shrink-0 text-brand" aria-hidden />
             <div className="flex flex-col gap-1"><b>Submission recorded on-chain</b><StatusChip kind="pending" /></div></div>
           <div className="text-sm"><b>{created.drugName}</b><div className="text-mute">{num(created.quantity)} packs · expires {fmtDay(created.expiryDate)}</div></div>
-          <div className="font-mono text-xs text-brand" title={created.submitTxHash}>{shortHash(created.submitTxHash)}</div>
+          <TxLink hash={created.submitTxHash} />
           <p className="text-xs text-mute">{num(created.serials.total)} unique serial numbers were generated for this batch.</p>
         </div>
         <div className="flex justify-end gap-3">

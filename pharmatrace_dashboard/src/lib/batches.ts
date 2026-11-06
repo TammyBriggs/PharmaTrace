@@ -20,7 +20,7 @@ export interface BatchDetail {
   brandName: string | null; genericName: string | null; strength: string | null; dosageForm: string | null; packSize: string | null;
   registrationNumber: string | null; quantity: number; mfgDate: string; expiryDate: string; expired: boolean;
   manufacturer: { id: string; name: string; licenseNumber: string; wallet: string };
-  batchIdHash: string; submitTxHash: string;
+  batchIdHash: string; submitTxHash: string; serialRoot: string | null; serialCount: number | null;
   flag: { reason: string; notes: string; txHash: string } | null;
   revoke: { reason: string; notes: string; txHash: string } | null;
   link: string; events: BatchEvent[];

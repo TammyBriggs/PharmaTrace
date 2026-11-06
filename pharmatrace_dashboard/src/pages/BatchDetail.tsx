@@ -10,6 +10,7 @@ import { fmtDay, num } from '../lib/format';
 import { Card, ErrorState, Skeleton, StatusChip, type ChipKind } from '../components/ui';
 import { btnSecondary } from '../components/Modal';
 import { useBatchActions, type ActionKind } from '../components/BatchActions';
+import PackProof from '../components/PackProof';
 
 const TITLE: Record<EventKind, string> = {
   submitted: 'Submitted', approved: 'Approved', flagged: 'Flagged', flag_resolved: 'Flag resolved', revoked: 'Revoked', reinstated: 'Reinstated',
@@ -192,6 +193,8 @@ export default function BatchDetail() {
           </div>
         </div>
       </Card>
+
+      <PackProof batch={b} />
 
       {actions.node}
     </div>

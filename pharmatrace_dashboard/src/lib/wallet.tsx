@@ -10,7 +10,7 @@ interface Eip1193 {
 }
 declare global { interface Window { ethereum?: Eip1193 } }
 
-export interface ChainConfig { address: string; chainId: number; rpcUrl: string; abi: InterfaceAbi }
+export interface ChainConfig { address: string; chainId: number; chainName?: string; rpcUrl: string | null; abi: InterfaceAbi }
 
 export type WalletErrorCode = 'SETUP' | 'NO_WALLET' | 'NO_LINKED_WALLET' | 'REJECTED' | 'WRONG_ACCOUNT' | 'CHAIN' | 'REVERT';
 export class WalletError extends Error {
@@ -40,12 +40,12 @@ export function explain(e: unknown): WalletError {
   if (err.revert?.name && REVERTS[err.revert.name]) return new WalletError('REVERT', REVERTS[err.revert.name]);
   const msg = err.shortMessage ?? err.message ?? 'The transaction failed.';
   if (/nonce/i.test(msg)) {
-    return new WalletError('CHAIN', 'MetaMask’s transaction count is out of sync with the local chain (this happens after restarting the Hardhat node). In MetaMask: Settings → Advanced → Clear activity tab data, then try again.');
+    return new WalletError('CHAIN', 'MetaMask’s transaction count is out of sync with the network. On a local chain this happens after restarting the Hardhat node: in MetaMask go to Settings → Advanced → Clear activity tab data, then try again. On Sepolia, wait for your pending transaction to finish and try again.');
   }
   return new WalletError('CHAIN', msg.length > 200 ? `${msg.slice(0, 200)}…` : msg);
 }
 
-/** Switches MetaMask to the Hardhat network (adding it if needed). No-op when already on it. */
+/** Switches MetaMask to the contract's network (adding it if needed). No-op when already on it. */
 async function switchToChain(eth: Eip1193, cfg: ChainConfig) {
   const hex = `0x${cfg.chainId.toString(16)}`;
   if (String(await eth.request({ method: 'eth_chainId' })).toLowerCase() === hex) return;
@@ -53,9 +53,10 @@ async function switchToChain(eth: Eip1193, cfg: ChainConfig) {
     await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hex }] });
   } catch (e) {
     if ((e as { code?: number }).code !== 4902) throw e;       // 4902: network not added yet
+    if (!cfg.rpcUrl) throw new Error(`Add the ${cfg.chainName ?? 'network'} to MetaMask by hand (chain ID ${cfg.chainId}), then try again.`);
     await eth.request({
       method: 'wallet_addEthereumChain',
-      params: [{ chainId: hex, chainName: 'Hardhat Local', rpcUrls: [cfg.rpcUrl], nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 } }],
+      params: [{ chainId: hex, chainName: cfg.chainName ?? 'Hardhat Local', rpcUrls: [cfg.rpcUrl], nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 } }],
     });
   }
 }

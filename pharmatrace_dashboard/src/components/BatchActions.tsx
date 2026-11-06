@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CircleAlert, ChevronDown, Loader2, ShieldCheck, TriangleAlert, Wallet } from 'lucide-react';
 import { api } from '../lib/api';
 import { explain, shortAddr, useWallet, type WalletErrorCode } from '../lib/wallet';
+import TxLink from './TxLink';
 import { explorerUrl, fmtDateTime, reasonHashOf, shortHash, type BatchDetail, type Totals } from '../lib/batches';
 import Modal, { btnPrimary, btnSecondary } from './Modal';
 import { StatusChip } from './ui';
@@ -184,7 +185,7 @@ export function TxDialog({ tx, onClose, onRetry }: { tx: Tx; onClose: () => void
         <div className="flex justify-between gap-4"><dt className="text-mute">Action</dt><dd className="font-semibold">{copy.verb}</dd></div>
         <div className="flex justify-between gap-4"><dt className="text-mute">Batch</dt><dd className="font-mono text-xs">{tx.b.batchNo}</dd></div>
         {tx.reason && <div className="flex justify-between gap-4"><dt className="text-mute">Reason</dt><dd>{tx.reason}</dd></div>}
-        <div className="flex justify-between gap-4"><dt className="text-mute">Transaction</dt><dd className="font-mono text-xs text-brand" title={tx.hash}>{tx.hash ? shortHash(tx.hash) : 'Not sent yet'}</dd></div>
+        <div className="flex justify-between gap-4"><dt className="text-mute">Transaction</dt><dd>{tx.hash ? <TxLink hash={tx.hash} /> : <span className="text-xs text-mute">Not sent yet</span>}</dd></div>
       </dl>
       <p className="text-xs text-mute">Keep this window open until the transaction is confirmed.</p>
       <div className="flex justify-between">
@@ -213,7 +214,7 @@ function DoneDialog({ d, onClose }: { d: ActionDone & { b: BatchRef; reason?: st
         <dl className="flex flex-col gap-1.5 text-sm">
           {d.reason && <div className="flex justify-between gap-4"><dt className="text-mute">Reason</dt><dd className="text-right">{d.reason}</dd></div>}
           {d.notes && <div className="flex justify-between gap-4"><dt className="text-mute">Notes</dt><dd className="line-clamp-2 text-right">{d.notes}</dd></div>}
-          <div className="flex justify-between gap-4"><dt className="text-mute">Transaction</dt><dd className="font-mono text-xs text-brand" title={d.txHash}>{shortHash(d.txHash)}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="text-mute">Transaction</dt><dd><TxLink hash={d.txHash} /></dd></div>
           {last && <div className="flex justify-between gap-4"><dt className="text-mute">Time</dt><dd>{fmtDateTime(last.at)}</dd></div>}
           {last && <div className="flex justify-between gap-4"><dt className="text-mute">Signer</dt><dd className="font-mono text-xs" title={last.wallet}>{shortAddr(last.wallet)}</dd></div>}
         </dl>

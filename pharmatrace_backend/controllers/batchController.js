@@ -1,8 +1,9 @@
 const { ethers } = require('ethers');
 const pool = require('../config/db');
-const { getProvider, assertDeployed } = require('../config/chain');
+const { getProvider, assertDeployed, waitForReceipt } = require('../config/chain');
 const { recordAudit } = require('../utils/audit');
 const { deriveGtin, isValidGtin, randomSerial, digitalLink } = require('../utils/gs1');
+const { buildTree } = require('../utils/merkle');
 
 const PAGE_SIZE = 6;
 const MAX_QUANTITY = 50000;
@@ -78,7 +79,7 @@ async function readTx(txHash) {
   const dep = await assertDeployed();
   let receipt, block;
   try {
-    receipt = await getProvider().getTransactionReceipt(txHash);
+    receipt = await waitForReceipt(txHash);
     if (receipt) block = await getProvider().getBlock(receipt.blockNumber);
   } catch { throw fail(502, 'Could not read the transaction from the blockchain node.'); }
   if (!receipt) throw fail(409, 'The transaction has not been mined yet. Try again in a moment.');
@@ -161,6 +162,7 @@ async function loadDetail(id, scope) {
     expired: b.status === 'approved' && b.expiry_day < new Date().toISOString().slice(0, 10),
     manufacturer: { id: b.manufacturer_id, name: b.manufacturer_name, licenseNumber: b.license_number, wallet: b.manufacturer_wallet },
     batchIdHash: b.batch_id_hash, submitTxHash: b.submit_tx_hash,
+    serialRoot: b.serial_root ?? null, serialCount: b.serial_count ?? null,
     flag: b.flag_reason ? { reason: b.flag_reason, notes: b.flag_notes, txHash: b.flag_tx_hash } : null,
     revoke: b.revoke_reason ? { reason: b.revoke_reason, notes: b.revoke_notes, txHash: b.revoke_tx_hash } : null,
     link: digitalLink(b.gtin, b.batch_no),
@@ -214,7 +216,12 @@ const prepareBatch = async (req, res) => {
       [mf.id, batchNo, gtin, drugName, p.category, mfgDate, expiryDate, quantity, batchIdHash, metadataHash, req.user.id, p.id]);
     if (!rows.length) throw fail(409, `Batch ${batchNo} already exists for this manufacturer.`);
 
-    res.status(201).json({ id: rows[0].id, chain: { batchNo, metadataHash, mfgDate: unix(mfgDate), expiryDate: unix(expiryDate) },
+    // The pack serials are created now so their Merkle root can be signed into the same transaction that submits the batch.
+    // A draft can be prepared again (for example with a new quantity), so any earlier serials of this draft are replaced.
+    const { root, count } = await createSerials(rows[0].id, batchIdHash, quantity);
+
+    res.status(201).json({ id: rows[0].id,
+      chain: { batchNo, metadataHash, mfgDate: unix(mfgDate), expiryDate: unix(expiryDate), serialRoot: root, serialCount: count },
       summary: { drugName, gtin, expiryDate, quantity } });
   } catch (e) { send(res, e, 'prepare batch'); }
 };
@@ -231,6 +238,24 @@ async function addSerials(client, batchUuid, quantity) {
   if (have < quantity) throw fail(500, 'Could not generate unique serial numbers.');
 }
 
+/** Replaces the serials of a DRAFT batch and stores their Merkle root. Returns { root, count }. */
+async function createSerials(batchUuid, batchIdHash, quantity) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`DELETE FROM serials s USING batches b WHERE s.batch_uuid = b.id AND b.id = $1 AND b.status = 'draft'`, [batchUuid]);
+    await addSerials(client, batchUuid, quantity);
+    const all = (await client.query('SELECT serial FROM serials WHERE batch_uuid = $1', [batchUuid])).rows.map((r) => r.serial);
+    const tree = buildTree(batchIdHash, all);
+    await client.query('UPDATE batches SET serial_root = $2, serial_count = $3 WHERE id = $1', [batchUuid, tree.root, tree.count]);
+    await client.query('COMMIT');
+    return { root: tree.root, count: tree.count };
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw e;
+  } finally { client.release(); }
+}
+
 const confirmSubmit = async (req, res) => {
   const client = await pool.connect();
   try {
@@ -245,10 +270,13 @@ const confirmSubmit = async (req, res) => {
       throw fail(409, 'This batch has already been submitted.');
     }
 
+    if (!b0.serial_root) throw fail(409, 'This draft was saved before pack anchoring existed. Please create the batch again.');
+
     const { events, block } = await readTx(txHash);
     const ok = events.some((e) => e.name === 'BatchSubmitted' && e.args.batchId === b0.batch_id_hash
-      && e.args.manufacturer.toLowerCase() === wallet && e.args.metadataHash === b0.metadata_hash);
-    if (!ok) throw fail(400, 'That transaction does not match this batch and your wallet.');
+      && e.args.manufacturer.toLowerCase() === wallet && e.args.metadataHash === b0.metadata_hash
+      && e.args.serialRoot === b0.serial_root && Number(e.args.serialCount) === b0.serial_count);
+    if (!ok) throw fail(400, 'That transaction does not match this batch, its pack serials and your wallet.');
 
     await client.query('BEGIN');
     const b = (await client.query('SELECT * FROM batches WHERE id = $1 FOR UPDATE', [b0.id])).rows[0];
@@ -256,7 +284,6 @@ const confirmSubmit = async (req, res) => {
     await client.query(`UPDATE batches SET status='pending', submit_tx_hash=$2 WHERE id=$1`, [b.id, txHash]);
     await client.query(`INSERT INTO batch_events (batch_uuid, event, actor_id, actor_wallet, tx_hash, block_time)
                         VALUES ($1,'submitted',$2,$3,$4,to_timestamp($5) AT TIME ZONE 'UTC')`, [b.id, req.user.id, wallet, txHash, block.timestamp]);
-    await addSerials(client, b.id, b.quantity);
     await recordAudit({ actor_id: req.user.id, actor_wallet: wallet, action: 'batch.submit', entity_type: 'batch', entity_id: b.id, tx_hash: txHash,
       details: { batchNo: b.batch_no, drug: b.drug_name, quantity: b.quantity, manufacturer: mf.name } }, client);
     await client.query('COMMIT');

@@ -2,12 +2,14 @@
 // They cover the rules the whole system relies on: who may do what, the batch life cycle, and the verdict a scan receives.
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { buildTree } = require('../pharmatrace_backend/utils/merkle.js'); // the same tree the server builds
 
 const V = { NotFound: 0, Authentic: 1, Pending: 2, Flagged: 3, Expired: 4, ManufacturerRevoked: 5, BatchRevoked: 6 };
 const HOUR = 3600, DAY = 86400;
 const LICENCE = ethers.id('DEMO-MFG-0001');
 const REASON = ethers.id('Suspected counterfeit\nPackaging does not match the approved sample.');
 const META = ethers.id('batch metadata');
+const ROOT = ethers.id('serial root'), COUNT = 10; // stand-ins where a test does not care about the pack serials
 
 // A revert is checked by the custom error's name, which works with any ethers/Hardhat version.
 async function expectRevert(promise, errorName) {
@@ -30,7 +32,7 @@ describe('PharmaTrace contract', () => {
 
   const submit = async (signer = maker, batchNo = 'RW-0001', expiresIn = 365 * DAY) => {
     const t = await now();
-    await pt.connect(signer).submitBatch(batchNo, META, t - 30 * DAY, t + expiresIn);
+    await pt.connect(signer).submitBatch(batchNo, META, t - 30 * DAY, t + expiresIn, ROOT, COUNT);
     return pt.computeBatchId(signer.address, batchNo);
   };
   const verdict = async (id) => Number((await pt.verifyBatch(id))[0]);
@@ -48,7 +50,7 @@ describe('PharmaTrace contract', () => {
     });
     it('refuses to submit a batch from a wallet that is not a registered manufacturer', async () => {
       const t = await now();
-      await expectRevert(pt.connect(stranger).submitBatch('RW-0001', META, t - DAY, t + DAY), 'AccessControlUnauthorizedAccount');
+      await expectRevert(pt.connect(stranger).submitBatch('RW-0001', META, t - DAY, t + DAY, ROOT, COUNT), 'AccessControlUnauthorizedAccount');
     });
   });
 
@@ -77,7 +79,7 @@ describe('PharmaTrace contract', () => {
     });
     it('rejects an expiry date that is already in the past', async () => {
       const t = await now();
-      await expectRevert(pt.connect(maker).submitBatch('RW-0002', META, t - 2 * DAY, t - DAY), 'InvalidInput');
+      await expectRevert(pt.connect(maker).submitBatch('RW-0002', META, t - 2 * DAY, t - DAY, ROOT, COUNT), 'InvalidInput');
     });
     it('reports a batch it has never heard of as NotFound', async () => {
       expect(await verdict(ethers.id('nothing'))).to.equal(V.NotFound);
@@ -129,6 +131,73 @@ describe('PharmaTrace contract', () => {
       expect(await verdict(id)).to.equal(V.Flagged);
       await pt.connect(regulator).revokeBatch(id, REASON);
       expect(await verdict(id)).to.equal(V.BatchRevoked);
+    });
+  });
+
+  describe('pack serials (Merkle root)', () => {
+    const SERIALS = ['K7M2Q9XW4B3R', 'P5T8N2HC6V1D', 'Z3J9F4LA8S7G', 'D6W1Y5RE2U9K', 'M8C4X7BQ3N5T'];
+    const submitWithSerials = async (batchNo = 'RW-0010') => {
+      const t = await now();
+      const id = await pt.computeBatchId(maker.address, batchNo);
+      const tree = buildTree(id, SERIALS);
+      await pt.connect(maker).submitBatch(batchNo, META, t - DAY, t + 365 * DAY, tree.root, tree.count);
+      return { id, tree };
+    };
+
+    it('refuses a batch with no serial root or no serials', async () => {
+      const t = await now();
+      await expectRevert(pt.connect(maker).submitBatch('RW-0011', META, t - DAY, t + DAY, ethers.ZeroHash, COUNT), 'InvalidInput');
+      await expectRevert(pt.connect(maker).submitBatch('RW-0011', META, t - DAY, t + DAY, ROOT, 0), 'InvalidInput');
+    });
+    it('stores the root and count and announces them in the BatchSubmitted event', async () => {
+      const t = await now();
+      const id = await pt.computeBatchId(maker.address, 'RW-0012');
+      const tree = buildTree(id, SERIALS);
+      await expect(pt.connect(maker).submitBatch('RW-0012', META, t - DAY, t + DAY, tree.root, tree.count))
+        .to.emit(pt, 'BatchSubmitted');
+      const [, batch] = await pt.verifyBatch(id);
+      expect(batch.serialRoot).to.equal(tree.root);
+      expect(Number(batch.serialCount)).to.equal(SERIALS.length);
+    });
+    it('proves every real serial belongs to an approved batch', async () => {
+      const { id, tree } = await submitWithSerials();
+      await pt.connect(regulator).approveBatch(id);
+      for (const s of SERIALS) {
+        const [v, authorised] = await pt.verifyPack(id, s, tree.proofFor(s));
+        expect(authorised).to.equal(true);
+        expect(Number(v)).to.equal(V.Authentic);
+      }
+    });
+    it('rejects a made-up serial, a borrowed proof and an empty proof', async () => {
+      const { id, tree } = await submitWithSerials();
+      await pt.connect(regulator).approveBatch(id);
+      let [v, authorised] = await pt.verifyPack(id, 'MADEUP123456', tree.proofFor(SERIALS[0]));
+      expect(authorised).to.equal(false); expect(Number(v)).to.equal(V.NotFound);
+      [v, authorised] = await pt.verifyPack(id, SERIALS[1], tree.proofFor(SERIALS[0]));
+      expect(authorised).to.equal(false);
+      [v, authorised] = await pt.verifyPack(id, SERIALS[0], []);
+      expect(authorised).to.equal(false);
+    });
+    it('does not accept a real serial from a different batch', async () => {
+      const { id, tree } = await submitWithSerials('RW-0013');
+      const other = await submitWithSerials('RW-0014');
+      await pt.connect(regulator).approveBatch(id);
+      await pt.connect(regulator).approveBatch(other.id);
+      const [, authorised] = await pt.verifyPack(other.id, SERIALS[0], tree.proofFor(SERIALS[0]));
+      // the other batch has the same serial list, but its leaves are bound to ITS batch id, so this proof (built for the first batch) fails
+      expect(authorised).to.equal(false);
+    });
+    it('still reports the batch verdict for a genuine pack of a flagged batch', async () => {
+      const { id, tree } = await submitWithSerials();
+      await pt.connect(regulator).approveBatch(id);
+      await pt.connect(regulator).flagBatch(id, REASON);
+      const [v, authorised] = await pt.verifyPack(id, SERIALS[2], tree.proofFor(SERIALS[2]));
+      expect(authorised).to.equal(true);
+      expect(Number(v)).to.equal(V.Flagged);
+    });
+    it('returns NotFound for an unknown batch', async () => {
+      const [v, authorised] = await pt.verifyPack(ethers.id('nothing'), SERIALS[0], []);
+      expect(authorised).to.equal(false); expect(Number(v)).to.equal(V.NotFound);
     });
   });
 

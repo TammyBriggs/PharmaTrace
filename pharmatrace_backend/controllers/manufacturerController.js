@@ -1,6 +1,6 @@
 const { ethers } = require('ethers');
 const pool = require('../config/db');
-const { getProvider, assertDeployed } = require('../config/chain');
+const { getProvider, assertDeployed, waitForReceipt } = require('../config/chain');
 const { recordAudit } = require('../utils/audit');
 const { createAccount, resetAccount } = require('../utils/accounts');
 const { isEmail } = require('../utils/password');
@@ -131,7 +131,7 @@ const confirmManufacturer = async (req, res) => {
     const dep = await assertDeployed();
     let receipt, block;
     try {
-      receipt = await getProvider().getTransactionReceipt(txHash);
+      receipt = await waitForReceipt(txHash);
       if (receipt) block = await getProvider().getBlock(receipt.blockNumber);
     } catch { throw fail(502, 'Could not read the transaction from the blockchain node.'); }
     if (!receipt) throw fail(409, 'The transaction has not been mined yet. Try again in a moment.');

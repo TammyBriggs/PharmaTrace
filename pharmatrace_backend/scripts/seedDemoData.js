@@ -25,6 +25,7 @@ const { ethers, HDNodeWallet } = require('ethers');
 const pool = require('../config/db');
 const { getProvider, assertDeployed } = require('../config/chain');
 const { recordAudit } = require('../utils/audit');
+const { buildTree } = require('../utils/merkle');
 const { deriveGtin, randomSerial } = require('../utils/gs1');
 const { resetDemoData } = require('./resetDemoData');
 const { importRows, parseCsv } = require('./importCatalog');
@@ -168,7 +169,11 @@ async function main() {
         const drugName = `${p.generic_name} ${p.strength}`.slice(0, 150);
 
         // Chain: submit, then approve (and flag / revoke).
-        const submitRc = await (await asMfr.submitBatch(batchNo, metadataHash, unix(mfg), unix(expiry))).wait();
+        // Pack serials come first: their Merkle root is signed into the same transaction that submits the batch.
+        const serials = new Set();
+        while (serials.size < quantity) serials.add(randomSerial());
+        const tree = buildTree(batchId, [...serials]);
+        const submitRc = await (await asMfr.submitBatch(batchNo, metadataHash, unix(mfg), unix(expiry), tree.root, tree.count)).wait();
         const events = [{ event: 'submitted', tx: submitRc.hash, actor: user.id, wallet: signer.address, at: daysAgo(submittedDaysAgo), reason: null, notes: null }];
         let status = 'pending', flagInfo = null, revokeInfo = null;
         let t = submittedDaysAgo - rng() * 2.5;
@@ -197,17 +202,16 @@ async function main() {
           const b = (await client.query(
             `INSERT INTO batches (manufacturer_id, batch_no, gtin, drug_name, category, mfg_date, expiry_date, quantity, batch_id_hash, metadata_hash,
                                   status, submit_tx_hash, created_by, created_at, product_id, approved_at, approve_tx_hash,
-                                  flag_reason, flag_notes, flag_tx_hash, flagged_at, revoke_reason, revoke_notes, revoke_tx_hash, revoked_at)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25) RETURNING id`,
+                                  flag_reason, flag_notes, flag_tx_hash, flagged_at, revoke_reason, revoke_notes, revoke_tx_hash, revoked_at,
+                                  serial_root, serial_count)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27) RETURNING id`,
             [mf.id, batchNo, gtin, drugName, p.category, mfg, expiry, quantity, batchId, metadataHash, status, submitRc.hash, user.id, U(events[0].at), p.id,
               U(approvedEv?.at), approvedEv?.tx ?? null, flagInfo?.reason ?? null, flagInfo?.notes ?? null, flagInfo?.tx ?? null, U(flagInfo?.at),
-              revokeInfo?.reason ?? null, revokeInfo?.notes ?? null, revokeInfo?.tx ?? null, U(revokeInfo?.at)])).rows[0];
+              revokeInfo?.reason ?? null, revokeInfo?.notes ?? null, revokeInfo?.tx ?? null, U(revokeInfo?.at), tree.root, tree.count])).rows[0];
           for (const e of events) {
             await client.query(`INSERT INTO batch_events (batch_uuid, event, actor_id, actor_wallet, tx_hash, reason, notes, block_time)
                                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, [b.id, e.event, e.actor, e.wallet, e.tx, e.reason, e.notes, U(e.at)]);
           }
-          const serials = new Set();
-          while (serials.size < quantity) serials.add(randomSerial());
           await client.query('INSERT INTO serials (batch_uuid, serial) SELECT $1, unnest($2::text[])', [b.id, [...serials]]);
           const act = { submitted: 'batch.submit', approved: 'batch.approve', flagged: 'batch.flag', revoked: 'batch.revoke' };
           for (const e of events) {

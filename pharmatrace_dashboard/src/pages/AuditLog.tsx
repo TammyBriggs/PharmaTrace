@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, CircleCheck, Download, Loader2, Search, Sear
 import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { num } from '../lib/format';
+import TxLink from '../components/TxLink';
 import { shortHash } from '../lib/batches';
 import { DATE_RANGES, GROUPS, actionLabel, auditCsv, fmtCat, type AuditGroup, type AuditList, type AuditRange, type AuditRow, type ChainResult } from '../lib/audit';
 import { Card, ErrorState, PageHeading, Skeleton } from '../components/ui';
@@ -121,7 +122,7 @@ export default function AuditLog() {
                     <td className="px-4 py-3">{actionLabel(r.action)}</td>
                     <td className="px-4 py-3 font-mono text-sm break-words"><Subject r={r} /></td>
                     <td className="px-4 py-3 font-mono text-sm">
-                      {r.txHash ? <span title={r.txHash}>{shortHash(r.txHash)}</span> : <span className="text-mute" title="Recorded off-chain">—</span>}
+                      {r.txHash ? <TxLink hash={r.txHash} className="!text-ink" /> : <span className="text-mute" title="Recorded off-chain">—</span>}
                     </td>
                     <td className="px-4 py-3">{fmtCat(r.tsMs)}</td>
                   </tr>

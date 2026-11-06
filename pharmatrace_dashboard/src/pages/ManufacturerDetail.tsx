@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Boxes, CircleCheck, Clock3, Layers, Pill, ShieldAlert, type LucideIcon } from 'lucide-react';
 import { useApi } from '../lib/useApi';
+import TxLink from '../components/TxLink';
 import { chipFor, fmtDateTime, shortHash } from '../lib/batches';
 import { fmtDay, num } from '../lib/format';
 import type { MfProfile } from '../lib/manufacturers';
@@ -70,8 +71,8 @@ export default function ManufacturerDetail() {
                   <Row label="Registered">{fmtDateTime(m.createdAt)}</Row>
                   <Row label="Approved">{m.approvedAt ? fmtDay(m.approvedAt.slice(0, 10)) : <span className="text-mute">Not approved</span>}</Row>
                   {m.status === 'revoked' && m.revokedAt && <Row label="Revoked">{fmtDay(m.revokedAt.slice(0, 10))}</Row>}
-                  {m.registerTxHash && <Row label="Approval transaction"><span className="font-mono text-xs" title={m.registerTxHash}>{shortHash(m.registerTxHash)}</span></Row>}
-                  {m.revokeTxHash && <Row label="Revocation transaction"><span className="font-mono text-xs" title={m.revokeTxHash}>{shortHash(m.revokeTxHash)}</span></Row>}
+                  {m.registerTxHash && <Row label="Approval transaction"><TxLink hash={m.registerTxHash} /></Row>}
+                  {m.revokeTxHash && <Row label="Revocation transaction"><TxLink hash={m.revokeTxHash} /></Row>}
                 </dl>
               )}
             </Card>

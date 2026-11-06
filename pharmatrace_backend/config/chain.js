@@ -2,9 +2,21 @@ const fs = require('fs');
 const path = require('path');
 const { ethers } = require('ethers');
 
-// Written by scripts/deploy.js in the repo root (npx hardhat run scripts/deploy.js --network localhost).
-const DIR = path.join(__dirname, '..', 'chain');
+// Written by scripts/deploy.js in the repo root.
+//   local Hardhat chain  -> pharmatrace_backend/chain/          (not committed; changes on every restart)
+//   Sepolia testnet      -> pharmatrace_backend/chain-sepolia/  (committed, so the hosted server can read it)
+// Set CHAIN_NETWORK=sepolia to use the second one. Leave it unset for the local chain.
+const NETWORK = (process.env.CHAIN_NETWORK || '').trim().toLowerCase();
+if (NETWORK && !/^[a-z0-9-]+$/.test(NETWORK)) throw new Error('CHAIN_NETWORK may only contain letters, digits and dashes.');
+const DIR = path.join(__dirname, '..', NETWORK && NETWORK !== 'localhost' ? `chain-${NETWORK}` : 'chain');
 const RPC_URL = process.env.RPC_URL || 'http://127.0.0.1:8545';
+
+// What the browser is told to use if MetaMask does not know the network yet. RPC_URL itself often
+// contains a private API key (Alchemy, Infura), so it is never sent to the browser.
+const PUBLIC_RPCS = { 11155111: 'https://ethereum-sepolia-rpc.publicnode.com' };
+const CHAIN_NAMES = { 31337: 'Hardhat Local', 11155111: 'Sepolia' };
+const publicRpcFor = (chainId) => process.env.PUBLIC_RPC_URL || PUBLIC_RPCS[chainId] || (NETWORK ? null : RPC_URL);
+const chainNameFor = (chainId) => CHAIN_NAMES[chainId] || `Chain ${chainId}`;
 
 let provider;
 const getProvider = () => (provider ??= new ethers.JsonRpcProvider(RPC_URL, undefined, { cacheTimeout: -1 }));
@@ -38,4 +50,17 @@ async function assertDeployed() {
   return d;
 }
 
-module.exports = { getProvider, loadDeployment, assertDeployed };
+/**
+ * A transaction the browser just confirmed can take a moment to show up on this server's node
+ * (the wallet and the server may use different providers). Poll briefly before giving up.
+ */
+async function waitForReceipt(txHash, timeoutMs = 20000) {
+  const started = Date.now();
+  for (;;) {
+    const receipt = await getProvider().getTransactionReceipt(txHash);
+    if (receipt || Date.now() - started >= timeoutMs) return receipt;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+}
+
+module.exports = { getProvider, loadDeployment, assertDeployed, waitForReceipt, publicRpcFor, chainNameFor };

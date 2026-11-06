@@ -46,7 +46,7 @@ The system has four parts that work together end to end.
 | Pharmacist and manufacturer accounts created by a regulator | Complete (temporary password, forced change on first sign-in, reset by a regulator or by emailed code) |
 | Sector check and rate limiting | Complete (15 Gasabo sectors enforced on the server; limits on sign-in, reset and scans) |
 | Risk map by sector | Complete (no exact locations are stored) |
-| Deployment to a public test network (Sepolia) | Not done (runs on a local Hardhat chain) |
+| Deployment to a public test network (Sepolia) | Ready to deploy (Hardhat network, deploy script and server settings are in place; see "Deploying to Sepolia") |
 | Production hosting in Rwanda | Not done (development runs through an ngrok tunnel) |
 
 ---
@@ -68,6 +68,8 @@ The system has four parts that work together end to end.
 | Anyone | Verify a batch or pack, view its public history |
 
 The chain stores only wallet addresses, timestamps, statuses and hashes. Names, licence numbers, drug details and flag reasons stay in the off-chain database and are anchored on-chain by hash.
+
+**Pack-level authenticity (Merkle root).** When a manufacturer submits a batch, the same signed transaction carries the Merkle root of every pack serial in that batch (leaf = `keccak256(abi.encode(batchId, serial))`). The serials are not stored on-chain, which would cost gas for every pack, but any single pack can be proven to belong to the approved batch with a short proof. The contract checks that proof itself (`verifyPack`), and a serial that is not in the tree, or that belongs to another batch, is rejected. The dashboard shows the root on every batch page and has a "Prove it" box that builds the proof and asks the contract. The server refuses a submission whose signed root does not match the serials it created.
 
 ---
 
@@ -111,6 +113,16 @@ npx hardhat run scripts/deploy.js --network localhost     # terminal 2
 
 `deploy.js` writes the contract address and ABI to `pharmatrace_backend/chain/`. Import Hardhat account #1 (regulator) and later accounts into MetaMask, and add the network `http://127.0.0.1:8545`, chain ID `31337`.
 
+#### Deploying to Sepolia (public test network)
+
+1. Get a Sepolia RPC URL (a free Alchemy or Infura project) and a wallet that holds only test ETH. Test ETH comes from a Sepolia faucet.
+2. In the repo root create `.env` (see `.env.example`) with `SEPOLIA_RPC_URL` and `DEPLOYER_PRIVATE_KEY`. Never commit it. Run `npm install` once.
+3. Deploy: `npx hardhat run scripts/deploy.js --network sepolia`. The deploying wallet becomes the admin and regulator wallet. The address and ABI are written to `pharmatrace_backend/chain-sepolia/`. **Commit that folder** so the hosted server can read it.
+4. On the server (Render) set `CHAIN_NETWORK=sepolia` and `RPC_URL=<your Sepolia RPC URL>`. Leave both unset locally to keep using the local chain. Optional: `PUBLIC_RPC_URL`, the address the browser may use to add the network (defaults to a public Sepolia node, so your private RPC key is never sent to browsers).
+5. Link the regulator account's wallet to the deploying wallet, and give every manufacturer wallet a little test ETH for gas.
+6. Run `node scripts/migrate.js` against the database (migration 009 adds the serial-root columns) before the new server code starts.
+7. When you host the dashboard, set `VITE_EXPLORER_URL=https://sepolia.etherscan.io` at build time. Every transaction hash in the dashboard then links to Etherscan.
+
 ### 3. Configure and prepare the database
 
 Create `pharmatrace_backend/.env` (never commit it):
@@ -118,7 +130,8 @@ Create `pharmatrace_backend/.env` (never commit it):
 ```
 DATABASE_URL=postgres://user:password@host/dbname
 JWT_SECRET=<a long random string>
-RPC_URL=http://127.0.0.1:8545
+RPC_URL=http://127.0.0.1:8545              # on Sepolia: your Alchemy/Infura Sepolia URL
+# CHAIN_NETWORK=sepolia                      # set only when using Sepolia (reads pharmatrace_backend/chain-sepolia/)
 PUBLIC_BASE_URL=http://localhost:3000        # or your ngrok address; this is what QR codes point to
 ALLOWED_ORIGINS=http://localhost:5173
 PORT=3000
@@ -135,7 +148,7 @@ DASHBOARD_URL=http://localhost:5173          # shown in the emails that carry a 
 ```bash
 cd pharmatrace_backend
 npm install                                               # adds express-rate-limit
-node scripts/migrate.js                                   # builds all tables (001 to 008); safe to re-run
+node scripts/migrate.js                                   # builds all tables (001 to 009); safe to re-run
 node scripts/importCatalog.js                             # product catalogue (add data/catalog_clean_all.csv for all 513 products)
 
 # A regulator login, plus the demo super admin if you want one:
@@ -161,6 +174,8 @@ cd pharmatrace_backend && npm start            # http://localhost:3000
 cd pharmatrace_dashboard && npm install && npm run dev   # http://localhost:5173 (npm install adds leaflet for the risk map)
 ```
 
+`npm run dev` sends `/api` calls to the server on your laptop (`http://localhost:3000`). To use the hosted backend instead, create `pharmatrace_dashboard/.env.local` containing `VITE_DEV_API=https://pharmatrace-bf19.onrender.com` and restart `npm run dev`.
+
 ### 6. Run the mobile app
 
 ```bash
@@ -178,7 +193,7 @@ The app adds `/api` itself. Without `--dart-define` it uses the default in `lib/
 
 | Level | Command | What it covers |
 |---|---|---|
-| Contract unit tests | `npx hardhat test` (repo root) | Roles, batch life cycle, flag and revoke, manufacturer revocation, emergency pause, expiry |
+| Contract unit tests | `npx hardhat test` (repo root) | Roles, batch life cycle, flag and revoke, manufacturer revocation, emergency pause, expiry, serial Merkle root and pack proofs |
 | Unit tests | `cd pharmatrace_backend && npm test` | GS1 check digit, GTIN derivation, serial alphabet, Digital Link parsing |
 | API integration tests | same command (needs the API running and seeded data) | Verdicts against the real database and contract, batch-number lookup, bad input, public history order, authentication, audit chain |
 | Account tests | `node --test tests/accounts.integration.test.js` (needs the API running on a test database) | Pharmacist and manufacturer logins, forced password change, reset codes (once, 5 tries, expiry), sector check, sign-in rate limit, risk-map response |
