@@ -8,6 +8,9 @@ class BatchHistoryEvent {
   final String by;
   final String? txHash;
 
+  /// Link to this transaction in a block explorer (Etherscan on Sepolia). Null on a local chain.
+  final String? explorerUrl;
+
   /// The batch's status once this step had happened: pending | approved | flagged | revoked.
   final String statusAfter;
 
@@ -17,6 +20,7 @@ class BatchHistoryEvent {
     required this.by,
     required this.statusAfter,
     this.txHash,
+    this.explorerUrl,
   });
 
   factory BatchHistoryEvent.fromJson(Map<String, dynamic> json) {
@@ -30,6 +34,7 @@ class BatchHistoryEvent {
       at: DateTime.tryParse(str(json['at']) ?? ''),
       by: str(json['by']) ?? 'regulator',
       txHash: str(json['txHash']),
+      explorerUrl: str(json['explorerUrl']),
       statusAfter: str(json['statusAfter']) ?? 'pending',
     );
   }

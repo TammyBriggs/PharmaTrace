@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { Contract } = require('ethers');
 const pool = require('../config/db');
-const { getProvider, assertDeployed } = require('../config/chain');
+const { getProvider, assertDeployed, explorerBase } = require('../config/chain');
 const { recordAudit } = require('../utils/audit');
 const { parseDigitalLink } = require('../utils/gs1');
 const { scanLimiter } = require('../middleware/rateLimit');
@@ -184,9 +184,13 @@ const verifyHistory = async (req, res) => {
       `SELECT e.event, e.tx_hash, to_char(e.block_time,'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS at
          FROM batch_events e WHERE e.batch_uuid = $1 ORDER BY e.block_time, e.created_at`, [row.batch_uuid])).rows;
     const after = statusAfter(ev);
+    const explorer = explorerBase();   // null on a local chain, so the app falls back to copying the hash
     res.set('Cache-Control', 'no-store').json({
       batch: { batchNo: row.batch_no, drugName: row.drug_name },
-      events: ev.map((e, i) => ({ e, i })).filter(({ e }) => e.event !== 'submitted').map(({ e, i }) => ({ event: e.event, at: e.at, by: 'regulator', txHash: e.tx_hash, statusAfter: after[i] })),
+      events: ev.map((e, i) => ({ e, i })).filter(({ e }) => e.event !== 'submitted').map(({ e, i }) => ({
+        event: e.event, at: e.at, by: 'regulator', txHash: e.tx_hash, statusAfter: after[i],
+        explorerUrl: explorer && e.tx_hash ? `${explorer}/tx/${e.tx_hash}` : null,
+      })),
     });
   } catch (e) { console.error('Error in verify history:', e.message); res.status(500).json({ error: 'Server error while loading the history' }); }
 };

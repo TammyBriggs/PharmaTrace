@@ -63,4 +63,16 @@ async function waitForReceipt(txHash, timeoutMs = 20000) {
   }
 }
 
-module.exports = { getProvider, loadDeployment, assertDeployed, waitForReceipt, publicRpcFor, chainNameFor };
+const EXPLORERS = { 11155111: 'https://sepolia.etherscan.io' };
+
+/**
+ * Base address of the block explorer for the deployed network, or null on a local chain (which has none).
+ * EXPLORER_URL overrides it. Read once per request, not once per transaction.
+ */
+function explorerBase() {
+  const set = (process.env.EXPLORER_URL || '').trim().replace(/\/$/, '');
+  if (set) return set;
+  try { return EXPLORERS[loadDeployment().chainId] ?? null; } catch { return null; }
+}
+
+module.exports = { getProvider, loadDeployment, assertDeployed, waitForReceipt, publicRpcFor, chainNameFor, explorerBase };

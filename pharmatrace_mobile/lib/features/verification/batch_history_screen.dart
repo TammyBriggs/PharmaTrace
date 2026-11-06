@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/format.dart';
 import '../../core/theme.dart';
@@ -89,6 +90,22 @@ class _BatchHistoryScreenState extends State<BatchHistoryScreen> {
     }
   }
 
+  void _copy(String hash) {
+    Clipboard.setData(ClipboardData(text: hash));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Blockchain transaction ID copied')));
+  }
+
+  /// Opens the transaction on the block explorer in the phone's browser.
+  Future<void> _openExplorer(String url) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {}
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open the blockchain explorer.')));
+    }
+  }
+
   String _shortHash(String h) => h.length <= 18 ? h : '${h.substring(0, 10)}…${h.substring(h.length - 6)}';
 
   Widget _eventTile(BuildContext context, BatchHistoryEvent e, {required bool isLast}) {
@@ -134,32 +151,45 @@ class _BatchHistoryScreenState extends State<BatchHistoryScreen> {
                   ),
                   if (e.txHash != null) ...[
                     const SizedBox(height: 6),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(4),
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: e.txHash!));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Blockchain transaction ID copied')),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.link, size: 14, color: c.textSecondary),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                _shortHash(e.txHash!),
-                                style: TextStyle(color: c.textSecondary, fontSize: 12, fontFamily: 'monospace'),
-                              ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // With an explorer address the hash is a link to the transaction; without one (a local chain) it copies.
+                        InkWell(
+                          borderRadius: BorderRadius.circular(4),
+                          onTap: e.explorerUrl != null ? () => _openExplorer(e.explorerUrl!) : () => _copy(e.txHash!),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(e.explorerUrl != null ? Icons.open_in_new : Icons.link,
+                                    size: 14, color: e.explorerUrl != null ? c.accent : c.textSecondary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _shortHash(e.txHash!),
+                                  style: TextStyle(
+                                    color: e.explorerUrl != null ? c.accent : c.textSecondary,
+                                    fontSize: 12,
+                                    fontFamily: 'monospace',
+                                    decoration: e.explorerUrl != null ? TextDecoration.underline : null,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 4),
-                            Icon(Icons.copy, size: 12, color: c.textSecondary),
-                          ],
+                          ),
                         ),
-                      ),
+                        if (e.explorerUrl != null)
+                          IconButton(
+                            tooltip: 'Copy transaction ID',
+                            visualDensity: VisualDensity.compact,
+                            iconSize: 14,
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(),
+                            icon: Icon(Icons.copy, color: c.textSecondary),
+                            onPressed: () => _copy(e.txHash!),
+                          ),
+                      ],
                     ),
                   ],
                 ],
