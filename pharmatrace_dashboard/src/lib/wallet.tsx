@@ -70,8 +70,12 @@ interface WalletState {
   connect: () => Promise<void>;
   /** Opens MetaMask's account picker so the site can be given a different account. */
   switchAccount: () => Promise<void>;
-  /** Switches MetaMask to the Hardhat network. */
+  /** Switches MetaMask to the network the contract is deployed on. */
   switchNetwork: () => Promise<void>;
+  /** Takes this site's access to the wallet away, so the next "Connect wallet" starts fresh. */
+  disconnect: () => Promise<void>;
+  /** Name of the network the contract is on (for example "Sepolia"), once the server has said. */
+  chainName: string | null;
   /** Prompts as needed, checks network and account, and returns a contract bound to the signer. */
   ensureReady: () => Promise<Contract>;
 }
@@ -149,6 +153,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } catch (e) { throw explain(e); }
   }, []);
 
+  const disconnect = useCallback(async () => {
+    const eth = window.ethereum;
+    if (!eth) return;
+    try {
+      await eth.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] });
+    } catch {
+      throw new WalletError('SETUP', 'MetaMask did not let this site disconnect. Open MetaMask, choose Connected sites, and disconnect it there.');
+    }
+    setAccounts([]);
+  }, []);
+
   const ensureReady = useCallback(async () => {
     const eth = window.ethereum;
     if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
@@ -174,8 +189,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [linked, loadConfig]);
 
   const value = useMemo<WalletState>(() => ({
-    hasProvider, account, chainId, expectedChainId: config?.chainId ?? null, linkedWallet: linked, connect, switchAccount, switchNetwork, ensureReady,
-  }), [hasProvider, account, chainId, config, linked, connect, switchAccount, switchNetwork, ensureReady]);
+    hasProvider, account, chainId, expectedChainId: config?.chainId ?? null, chainName: config?.chainName ?? null, linkedWallet: linked,
+    connect, switchAccount, switchNetwork, disconnect, ensureReady,
+  }), [hasProvider, account, chainId, config, linked, connect, switchAccount, switchNetwork, disconnect, ensureReady]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
