@@ -46,8 +46,8 @@ The system has four parts that work together end to end.
 | Pharmacist and manufacturer accounts created by a regulator | Complete (temporary password, forced change on first sign-in, reset by a regulator or by emailed code) |
 | Sector check and rate limiting | Complete (15 Gasabo sectors enforced on the server; limits on sign-in, reset and scans) |
 | Risk map by sector | Complete (no exact locations are stored) |
-| Deployment to a public test network (Sepolia) | Ready to deploy (Hardhat network, deploy script and server settings are in place; see "Deploying to Sepolia") |
-| Production hosting in Rwanda | Not done (development runs through an ngrok tunnel) |
+| Deployment to a public test network (Sepolia) | Complete (contract `0x5963d25e359dA56095357c7BCFB382999504471D`; see "Deploying to Sepolia") |
+| Hosted dashboard and server | Complete (dashboard on Vercel, server on Render, database on Neon) |
 
 ---
 
@@ -264,11 +264,11 @@ PharmaTrace/
 ## Known limitations
 
 - The API rate limiter keeps its counts in memory. It resets on restart and does not share counts between servers.
-- Everything runs on a local chain. A public test network and hosting in Rwanda are future steps.
+- The contract runs on the Sepolia test network, not on a production blockchain.
 - A cloned QR code on a fake pack is only caught when the same serial is sold twice or scanned in unusual patterns.
 - Reset codes are emailed through Brevo. Without a Brevo key (or for an account that uses a phone number) a regulator resets the password from the dashboard instead.
 - The risk map draws each sector at an approximate centre point, not its boundary.
-- The ngrok free tunnel adds about half a second per request, so measured scan times include it.
+- The free Render server sleeps after 15 minutes without traffic, so the first request after a break is much slower than the ones after it.
 
 ---
 
