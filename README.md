@@ -9,6 +9,9 @@ PharmaTrace is an anti-counterfeit medicine verification system for Rwanda. Manu
 | **Walkthrough video** | https://www.loom.com/share/fd8ff9e8adf94007b2d334cb48665379|
 | **Technical report (PDF)** | [`docs/PharmaTrace_Technical_Report.pdf`](docs/PharmaTrace_Technical_Report.pdf) |
 | **Figma** | https://www.figma.com/design/i8k7qcRAaYYRulinorFO43/Untitled?node-id=3-1274 |
+| **Live dashboard** | https://pharma-trace-gamma.vercel.app (Vercel) |
+| **Live API** | https://pharmatrace-v2.onrender.com (Render, Frankfurt) |
+| **Smart contract (Sepolia test network)** | `0x5963d25e359dA56095357c7BCFB382999504471D`. [View it on Etherscan](https://sepolia.etherscan.io/address/0x5963d25e359dA56095357c7BCFB382999504471D): the *Transactions* tab lists every call made to the contract (manufacturer registrations, batch submissions, approvals, flags) and the *Events* tab shows what each one recorded. |
 
 ---
 
@@ -47,7 +50,7 @@ The system has four parts that work together end to end.
 | Sector check and rate limiting | Complete (15 Gasabo sectors enforced on the server; limits on sign-in, reset and scans) |
 | Risk map by sector | Complete (no exact locations are stored) |
 | Deployment to a public test network (Sepolia) | Complete (contract `0x5963d25e359dA56095357c7BCFB382999504471D`; see "Deploying to Sepolia") |
-| Hosted dashboard and server | Complete (dashboard on Vercel, server on Render, database on Neon) |
+| Hosted dashboard and server | Complete (dashboard on Vercel, server on Render in Frankfurt, database on Neon in Frankfurt) |
 
 ---
 
@@ -174,7 +177,7 @@ cd pharmatrace_backend && npm start            # http://localhost:3000
 cd pharmatrace_dashboard && npm install && npm run dev   # http://localhost:5173 (npm install adds leaflet for the risk map)
 ```
 
-`npm run dev` sends `/api` calls to the server on your laptop (`http://localhost:3000`). To use the hosted backend instead, create `pharmatrace_dashboard/.env.local` containing `VITE_DEV_API=https://pharmatrace-bf19.onrender.com` and restart `npm run dev`.
+`npm run dev` sends `/api` calls to the server on your laptop (`http://localhost:3000`). To use the hosted backend instead, create `pharmatrace_dashboard/.env.local` containing `VITE_DEV_API=https://pharmatrace-v2.onrender.com` and restart `npm run dev`.
 
 ### 6. Run the mobile app
 
@@ -198,7 +201,7 @@ The app adds `/api` itself. Without `--dart-define` it uses the default in `lib/
 | API integration tests | same command (needs the API running and seeded data) | Verdicts against the real database and contract, batch-number lookup, bad input, public history order, authentication, audit chain |
 | Account tests | `node --test tests/accounts.integration.test.js` (needs the API running on a test database) | Pharmacist and manufacturer logins, forced password change, reset codes (once, 5 tries, expiry), sector check, sign-in rate limit, risk-map response |
 | Device testing | Manual | Tecno Camon 15 over a mobile network, light and dark themes, patient and pharmacist flows |
-| Performance | ngrok traffic inspector | Scan requests through the tunnel measured per request |
+| Performance | `cd pharmatrace_backend && node scripts/latencyTest.js --api <server> --batch <batch no> ...` (see the top of the script) | Times scans, pack scans, batch history and the dashboard page on the hosted system, split into connection setup and server wait, with chain reads on or off |
 
 ---
 

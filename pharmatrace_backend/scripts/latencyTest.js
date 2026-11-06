@@ -2,7 +2,7 @@
 // Latency test for the hosted system. Times real HTTPS requests from where you run it (your laptop, so the
 // numbers include your own internet connection), one at a time, and prints a table you can paste into the report.
 //
-//   node scripts/latencyTest.js --api https://pharmatrace-bf19.onrender.com \
+//   node scripts/latencyTest.js --api https://pharmatrace-v2.onrender.com \
 //        --gtin <GTIN> --batch <BATCH NO> --serial <PACK SERIAL> \
 //        --web https://pharma-trace-gamma.vercel.app --label chain-on
 //
