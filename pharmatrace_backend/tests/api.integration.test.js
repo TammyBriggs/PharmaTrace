@@ -69,7 +69,7 @@ test('the public history starts at approval, oldest first, and shows no staff na
   assert.ok(events.every((e) => e.event !== 'submitted'));
   const times = events.map((e) => Date.parse(e.at));
   assert.deepEqual(times, [...times].sort((a, c) => a - c));       // oldest first
-  for (const e of events) assert.deepEqual(Object.keys(e).sort(), ['at', 'by', 'event', 'statusAfter', 'txHash']);
+  for (const e of events) assert.deepEqual(Object.keys(e).sort(), ['at', 'by', 'event', 'explorerUrl', 'statusAfter', 'txHash']);
 });
 
 test('history of an unknown batch is a 404', async () => {
