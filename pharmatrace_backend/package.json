@@ -2,7 +2,7 @@
   "name": "pharmatrace_backend",
   "version": "1.0.0",
   "description": "PharmaTrace API: batch registry, QR verification, regulator and manufacturer dashboards",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "migrate": "node scripts/migrate.js",

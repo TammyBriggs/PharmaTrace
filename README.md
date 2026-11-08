@@ -6,7 +6,7 @@ PharmaTrace is an anti-counterfeit medicine verification system for Rwanda. Manu
 |---|---|
 | **Author** | Tamunotonye Briggs, African Leadership University (BSc Software Engineering, Low-Level Programming track) |
 | **Repository** | https://github.com/TammyBriggs/PharmaTrace |
-| **Walkthrough video** | https://www.loom.com/share/fd8ff9e8adf94007b2d334cb48665379|
+| **Walkthrough video** | https://www.loom.com/share/fd8ff9e8adf94007b2d334cb48665379 |
 | **Technical report (PDF)** | [`docs/PharmaTrace_Technical_Report.pdf`](docs/PharmaTrace_Technical_Report.pdf) |
 | **Figma** | https://www.figma.com/design/i8k7qcRAaYYRulinorFO43/Untitled?node-id=3-1274 |
 | **Live dashboard** | https://pharma-trace-gamma.vercel.app (Vercel) |
@@ -126,9 +126,20 @@ npx hardhat run scripts/deploy.js --network localhost     # terminal 2
 6. Run `node scripts/migrate.js` against the database (migration 009 adds the serial-root columns) before the new server code starts.
 7. When you host the dashboard, set `VITE_EXPLORER_URL=https://sepolia.etherscan.io` at build time. Every transaction hash in the dashboard then links to Etherscan.
 
+#### Hosted deployment (Vercel, Render, Neon)
+
+The live system uses three hosts. Keep the backend and the database in the same region (both are in Frankfurt), because every request makes several database calls.
+
+| Part | Host | What to set |
+|---|---|---|
+| Database | Neon PostgreSQL | Run `node scripts/migrate.js` and `node scripts/importCatalog.js` once against its connection string |
+| Backend | Render | Run `npm start` in `pharmatrace_backend`. Set the required variables from `backend.env.example`, with `CHAIN_NETWORK=sepolia` and `PUBLIC_BASE_URL` set to the server's own address |
+| Dashboard | Vercel | Deploy `pharmatrace_dashboard`. `vercel.json` forwards `/api/*` to the Render server and sends every other path to `index.html`. Set `VITE_EXPLORER_URL` at build time |
+| Mobile app | Android build | The default server address in `lib/core/config.dart` is the hosted backend |
+
 ### 3. Configure and prepare the database
 
-Create `pharmatrace_backend/.env` (never commit it):
+Copy `pharmatrace_backend/backend.env.example` to `pharmatrace_backend/.env` and fill it in (never commit it). The example file sorts every variable into required, optional and setup-only. The main ones are:
 
 ```
 DATABASE_URL=postgres://user:password@host/dbname
@@ -147,6 +158,8 @@ MAIL_FROM=no-reply@your-domain               # a sender address verified in Brev
 MAIL_FROM_NAME=PharmaTrace
 DASHBOARD_URL=http://localhost:5173          # shown in the emails that carry a login
 ```
+
+Optional: `CHAIN_READS=off` (answer scans from the database only), `EXPLORER_URL` (block explorer address, defaults to Etherscan on Sepolia), `DISPLAY_TIMEZONE` (dates shown in reports) and `ANALYTICS_BURST_MIN` (minutes used to group a burst of scans).
 
 ```bash
 cd pharmatrace_backend
@@ -188,7 +201,7 @@ dart run flutter_native_splash:create          # builds the native splash screen
 flutter run --dart-define=API_BASE_URL=https://<your-ngrok-address>
 ```
 
-The app adds `/api` itself. Without `--dart-define` it uses the default in `lib/core/config.dart`. On the Android emulator use `http://10.0.2.2:3000`. A physical phone needs a public address, for example `ngrok http 3000`; set the same address as `PUBLIC_BASE_URL` in the backend `.env`.
+The app adds `/api` itself. Without `--dart-define` it uses the hosted backend (`https://pharmatrace-v2.onrender.com/api`), which is the default in `lib/core/config.dart`. On the Android emulator use `http://10.0.2.2:3000`. A physical phone needs a public address, for example `ngrok http 3000`; set the same address as `PUBLIC_BASE_URL` in the backend `.env`.
 
 ---
 
@@ -196,12 +209,15 @@ The app adds `/api` itself. Without `--dart-define` it uses the default in `lib/
 
 | Level | Command | What it covers |
 |---|---|---|
-| Contract unit tests | `npx hardhat test` (repo root) | Roles, batch life cycle, flag and revoke, manufacturer revocation, emergency pause, expiry, serial Merkle root and pack proofs |
-| Unit tests | `cd pharmatrace_backend && npm test` | GS1 check digit, GTIN derivation, serial alphabet, Digital Link parsing |
-| API integration tests | same command (needs the API running and seeded data) | Verdicts against the real database and contract, batch-number lookup, bad input, public history order, authentication, audit chain |
-| Account tests | `node --test tests/accounts.integration.test.js` (needs the API running on a test database) | Pharmacist and manufacturer logins, forced password change, reset codes (once, 5 tries, expiry), sector check, sign-in rate limit, risk-map response |
+| Contract unit tests (24) | `npx hardhat test` (repo root) | Roles, batch life cycle, flag and revoke, manufacturer revocation, emergency pause, expiry, serial Merkle root and pack proofs |
+| Unit tests (6) | `cd pharmatrace_backend && npm test` | GS1 check digit, GTIN derivation, serial alphabet, Digital Link parsing |
+| API integration tests (11) | same command (needs the API running and seeded data) | Verdicts against the real database and contract, batch-number lookup, bad input, public history order, authentication, audit chain |
+| Account tests (11) | `node --test tests/accounts.integration.test.js` (needs the API running on a test database) | Pharmacist and manufacturer logins, forced password change, reset codes (once, 5 tries, expiry), sector check, sign-in rate limit, risk-map response |
 | Device testing | Manual | Tecno Camon 15 over a mobile network, light and dark themes, patient and pharmacist flows |
-| Performance | `cd pharmatrace_backend && node scripts/latencyTest.js --api <server> --batch <batch no> ...` (see the top of the script) | Times scans, pack scans, batch history and the dashboard page on the hosted system, split into connection setup and server wait, with chain reads on or off |
+| Static checks | `cd pharmatrace_dashboard && npx tsc --noEmit`; `cd pharmatrace_mobile && flutter analyze` | Type errors in the dashboard; analyzer findings in the app |
+| Performance | `cd pharmatrace_backend && node scripts/latencyTest.js --api <server> --batch <batch no> ...` (see the top of the script) | Times scans, pack scans, batch history and the dashboard page on the hosted system, split into connection setup and server wait, with chain reads on or off. Results are saved as JSON; `node scripts/latencyTable.js <file>` prints one as tables. The saved runs from 6 November 2026 are in `docs/latency-results/` |
+
+To find out why approving a manufacturer from the dashboard would revert, run `node scripts/checkApproval.js <regulatorWallet> <manufacturerWallet>` in `pharmatrace_backend`. It is read-only: it reports whether the contract is paused, whether the wallet holds the regulator role, and whether the manufacturer is already registered on-chain.
 
 ---
 
@@ -210,19 +226,23 @@ The app adds `/api` itself. Without `--dart-define` it uses the default in `lib/
 ```
 PharmaTrace/
 ├── contracts/PharmaTrace.sol            # Smart contract
-├── scripts/deploy.js                    # Deploys the contract to the local chain
+├── scripts/deploy.js                    # Deploys the contract (local chain or Sepolia)
+├── .env.example                         # Variables for deploying to Sepolia
 ├── test/PharmaTrace.test.js             # Contract unit tests
 ├── hardhat.config.js
 ├── pharmatrace_backend/
 │   ├── server.js                        # Express app
 │   ├── config/                          # Database, blockchain and storage setup
+│   ├── chain-sepolia/                   # Contract address and ABI on Sepolia (committed so the hosted server can read it)
+│   ├── backend.env.example              # Every backend variable, sorted into required, optional and setup-only
 │   ├── routes/ controllers/             # One pair per area: auth, batches, verify, serials, reports, analytics, ...
 │   ├── middleware/                      # JWT check and role check
 │   ├── utils/                           # GS1 helpers and the audit hash chain
 │   ├── migrations/                      # SQL, applied in order by scripts/migrate.js
-│   ├── scripts/                         # migrate, import catalogue, seed accounts and demo data, reset, verify audit chain
+│   ├── scripts/                         # migrate, import catalogue, seed accounts and demo data, reset, verify audit chain, latency tests, checkApproval
 │   ├── data/                            # Rwanda FDA product catalogue (CSV)
 │   └── tests/                           # Unit and integration tests
+├── pharmatrace_dashboard/vercel.json    # Forwards /api to the Render backend
 ├── pharmatrace_dashboard/src/
 │   ├── pages/                           # One file per screen
 │   ├── components/                      # Reusable parts (shell, modal, notifications, search)
@@ -234,6 +254,7 @@ PharmaTrace/
 │   └── features/                        # scan, verification, history, profile, auth, onboarding
 └── docs/
     ├── PharmaTrace_Technical_Report.pdf # Technical report
+    ├── latency-results/                 # Saved latency test runs (JSON) and an index of them
     └── designs/                         # Figma exports
 ```
 
