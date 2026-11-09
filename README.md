@@ -11,6 +11,7 @@ PharmaTrace is an anti-counterfeit medicine verification system for Rwanda. Manu
 | **Figma** | https://www.figma.com/design/i8k7qcRAaYYRulinorFO43/Untitled?node-id=3-1274 |
 | **Live dashboard** | https://pharma-trace-gamma.vercel.app (Vercel) |
 | **Live API** | https://pharmatrace-v2.onrender.com (Render, Frankfurt) |
+| **Android app (APK)** | [Download the latest release](https://github.com/TammyBriggs/PharmaTrace/releases/latest) |
 | **Smart contract (Sepolia test network)** | `0x5963d25e359dA56095357c7BCFB382999504471D`. [View it on Etherscan](https://sepolia.etherscan.io/address/0x5963d25e359dA56095357c7BCFB382999504471D): the *Transactions* tab lists every call made to the contract (manufacturer registrations, batch submissions, approvals, flags) and the *Events* tab shows what each one recorded. |
 
 ---
@@ -92,6 +93,18 @@ The chain stores only wallet addresses, timestamps, statuses and hashes. Names, 
 | MetaMask | Browser extension, for dashboard signing |
 | ngrok | Optional, to reach the API from a physical phone |
 | Phone | Android (tested on a Tecno Camon 15) |
+
+---
+
+## Download the Android app
+
+You can install the mobile app without building it.
+
+1. On your Android phone, open the [latest release](https://github.com/TammyBriggs/PharmaTrace/releases/latest) and download `PharmaTrace-v1.0.0.apk`.
+2. Open the downloaded file. If Android asks, allow installs from this source (Install unknown apps).
+3. Open PharmaTrace. Patients can scan a medicine QR code without an account. Pharmacists sign in with the login the regulator created for them.
+
+The app uses the hosted backend, which sleeps when idle, so the first scan after a quiet period can be slow. This is a test build and is not published on Google Play.
 
 ---
 
