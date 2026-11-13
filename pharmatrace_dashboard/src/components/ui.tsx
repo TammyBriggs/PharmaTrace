@@ -48,12 +48,12 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
 
 export function PageHeading({ title, subtitle, right }: { title: string; subtitle: string; right?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-[28px] font-bold leading-normal">{title}</h1>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-col gap-2">
+        <h1 className="text-2xl font-bold leading-normal sm:text-[28px]">{title}</h1>
         <p className="text-sm text-mute">{subtitle}</p>
       </div>
-      {right}
+      {right && <div className="shrink-0 [&>button]:w-full sm:[&>button]:w-auto">{right}</div>}
     </div>
   );
 }

@@ -138,7 +138,7 @@ export default function Overview() {
               value={num(k?.openInvestigations ?? 0)} note="Pharmacist reports awaiting review" />
           </Carousel>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
             <Card className="flex flex-col gap-4">
               <div className="flex items-start justify-between">
                 <div>
@@ -179,7 +179,7 @@ export default function Overview() {
             </Card>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
             <Card className="flex flex-col gap-4">
               <h2 className="text-lg font-semibold">Scans by drug category</h2>
               <p className="-mt-3 text-xs text-mute">Today</p>

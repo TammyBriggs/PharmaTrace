@@ -10,6 +10,7 @@ import { DATE_RANGES, GROUPS, actionLabel, auditCsv, fmtCat, type AuditGroup, ty
 import { Card, ErrorState, PageHeading, Skeleton } from '../components/ui';
 import { btnSecondary } from '../components/Modal';
 import RangeMenu from '../components/RangeMenu';
+import { CardList, CardSkeletons, RecordCard, cardAction } from '../components/MobileCards';
 
 export default function AuditLog() {
   const [q, setQ] = useState('');
@@ -97,7 +98,17 @@ export default function AuditLog() {
 
       {error ? <ErrorState message={error} onRetry={reload} /> : (
         <Card className="overflow-hidden !p-0">
-          <div className="overflow-x-auto">
+          {first && <CardSkeletons />}
+          {data && data.rows.length > 0 && (
+            <CardList dim={loading}>
+              {data.rows.map((r) => (
+                <RecordCard key={r.seq} title={actionLabel(r.action)} subtitle={r.actor} badge={<span className="text-xs text-mute">{fmtCat(r.tsMs)}</span>}
+                  fields={[{ label: 'Batch / manufacturer', value: <Subject r={r} />, mono: true, wide: true },
+                    { label: 'Tx hash', value: r.txHash ? <TxLink hash={r.txHash} className="!text-ink" /> : <span className="text-mute" title="Recorded off-chain">—</span>, mono: true, wide: true }]} />
+              ))}
+            </CardList>
+          )}
+          <div className="hidden overflow-x-auto xl:block">
             <table className="w-full min-w-[900px] table-fixed text-sm">
               <thead>
                 <tr className="h-12 bg-canvas text-left text-xs font-semibold text-mute">
@@ -142,7 +153,7 @@ export default function AuditLog() {
             </div>
           )}
 
-          <div className="flex h-16 items-center justify-between border-t border-line px-4 text-xs text-mute">
+          <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line px-4 py-3 text-xs text-mute">
             <span>{first ? 'Fetching latest records' : data && data.total > 0 ? `Showing ${from}–${to} of ${num(data.total)} records` : '0 records'}</span>
             <div className="flex items-center gap-4">
               <span>Page {data?.page ?? 1} of {totalPages}</span>

@@ -159,7 +159,7 @@ export function TxDialog({ tx, onClose, onRetry }: { tx: Tx; onClose: () => void
           <TriangleAlert size={18} className="mt-0.5 shrink-0" aria-hidden /> {tx.error}
         </div>
         {tx.errCode === 'SETUP' && <p className="text-sm text-mute">This is a server or blockchain set-up issue, not a wallet problem. Start the Hardhat node, run the deploy script, then try again.</p>}
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
           <button className={btnSecondary} onClick={onClose}>Close</button>
           <button className={btnPrimary} onClick={onRetry}>{tx.hash ? 'Retry saving' : 'Try again'}</button>
         </div>
@@ -220,7 +220,7 @@ function DoneDialog({ d, onClose }: { d: ActionDone & { b: BatchRef; reason?: st
         </dl>
       </div>
       <p className="text-sm text-mute">Post-action totals: {t.flagged} flagged · {t.pending} pending · {t.approved} approved{t.revoked ? ` · ${t.revoked} revoked` : ''}.</p>
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
         <button className={btnSecondary} onClick={onClose}>Close</button>
         <Link to={`/batches/${d.b.id}`} onClick={onClose} className={`${btnPrimary} flex items-center`}>View batch</Link>
       </div>

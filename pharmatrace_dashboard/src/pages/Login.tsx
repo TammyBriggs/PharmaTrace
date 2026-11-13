@@ -35,9 +35,9 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-canvas p-4">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-canvas p-4">
       <form onSubmit={onSubmit} noValidate
-        className="flex w-[456px] max-w-full flex-col gap-7 rounded-xl border border-line bg-white p-10 shadow-card">
+        className="flex w-[456px] max-w-full flex-col gap-7 rounded-xl border border-line bg-white p-6 shadow-card sm:p-10">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-8 items-center justify-center rounded-lg bg-brand-tint">
             <ShieldPlus size={24} className="text-brand" aria-hidden />
@@ -46,7 +46,7 @@ export default function Login() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <h1 className="text-[28px] font-bold leading-normal">Welcome back</h1>
+          <h1 className="text-2xl font-bold leading-normal sm:text-[28px]">Welcome back</h1>
           <p className="text-sm text-mute">Sign in to your regulatory workspace.</p>
         </div>
 

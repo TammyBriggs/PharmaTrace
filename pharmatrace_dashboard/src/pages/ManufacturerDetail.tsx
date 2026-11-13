@@ -45,13 +45,13 @@ export default function ManufacturerDetail() {
           <div className="flex flex-wrap items-center gap-4">
             {loading || !m ? <Skeleton className="h-9 w-72" /> : (
               <>
-                <h1 className="text-[28px] font-bold leading-normal">{m.name}</h1>
+                <h1 className="break-words text-2xl font-bold leading-normal sm:text-[28px]">{m.name}</h1>
                 <StatusChip kind={CHIP[m.status]} />
               </>
             )}
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 xl:grid-cols-4">
             <Stat loading={loading} Icon={Layers} label="Batches submitted" value={s?.submitted ?? 0} note="Production runs sent for review" />
             <Stat loading={loading} Icon={CircleCheck} label="Batches approved" value={s?.approved ?? 0}
               note={`${num(s?.pending ?? 0)} pending · ${num(s?.flagged ?? 0)} flagged · ${num(s?.revoked ?? 0)} revoked`} />
@@ -59,7 +59,7 @@ export default function ManufacturerDetail() {
             <Stat loading={loading} Icon={Boxes} label="Packs registered" value={s?.packs ?? 0} note="Total quantity across batches" />
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
             <Card>
               <h2 className="mb-2 text-lg font-semibold">Details</h2>
               {loading || !m ? <Skeleton className="h-56 w-full" /> : (
@@ -89,7 +89,20 @@ export default function ManufacturerDetail() {
                   <p className="text-sm text-mute">Batches appear here once this manufacturer submits one for review.</p>
                 </div>
               ) : (
-                <table className="w-full text-sm">
+                <>
+                <ul className="flex flex-col sm:hidden">
+                  {m.recentBatches.map((b) => (
+                    <li key={b.id} className="flex flex-col gap-1.5 border-t border-line py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <Link to={`/batches/${b.id}`} className="font-mono text-sm font-semibold text-brand hover:underline">{b.batchNo}</Link>
+                        <StatusChip kind={chipFor({ status: b.status })} />
+                      </div>
+                      <p className="text-sm">{b.drug}</p>
+                      <p className="text-xs text-mute">Expires {fmtDay(b.expiryDate)}</p>
+                    </li>
+                  ))}
+                </ul>
+                <table className="hidden w-full text-sm sm:table">
                   <thead><tr className="h-10 text-left text-xs font-semibold text-mute">
                     <th className="px-2">Batch</th><th className="px-2">Drug</th><th className="px-2">Status</th><th className="px-2 text-right">Expires</th>
                   </tr></thead>
@@ -104,6 +117,7 @@ export default function ManufacturerDetail() {
                     ))}
                   </tbody>
                 </table>
+                </>
               )}
               {m && m.stats.flagged > 0 && (
                 <p className="mt-2 flex items-center gap-2 text-sm text-danger"><ShieldAlert size={16} aria-hidden /> {num(m.stats.flagged)} batch{m.stats.flagged === 1 ? '' : 'es'} currently flagged.</p>

@@ -7,6 +7,7 @@ import { GASABO_SECTORS } from '../lib/sectors';
 import { Card, ErrorState, PageHeading, Skeleton } from '../components/ui';
 import Modal, { btnDanger, btnPrimary, btnSecondary } from '../components/Modal';
 import Credentials from '../components/Credentials';
+import { CardList, CardSkeletons, RecordCard, cardAction } from '../components/MobileCards';
 
 interface Ph { id: string; name: string; contact: string; sector: string | null; active: boolean; mustChangePassword: boolean; lastLogin: string | null }
 interface ListResp {
@@ -63,7 +64,7 @@ export default function Pharmacists() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, email or sector"
             className="h-11 w-full rounded-lg border border-line bg-white pl-10 pr-3 text-sm outline-none placeholder:text-mute focus:border-brand focus:ring-2 focus:ring-brand/20" />
         </label>
-        <div className="flex gap-2" role="group" aria-label="Filter by status">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
           {FILTERS.map((f) => (
             <button key={f.key} aria-pressed={filter === f.key} onClick={() => { setFilter(f.key); setPage(1); }}
               className={`h-11 rounded-lg border px-4 text-sm font-semibold ${filter === f.key ? 'border-brand bg-brand-tint text-brand' : 'border-line bg-white text-mute hover:bg-canvas'}`}>{f.label}</button>
@@ -73,7 +74,22 @@ export default function Pharmacists() {
 
       {error ? <ErrorState message={error} onRetry={reload} /> : (
         <Card className="overflow-hidden !p-0">
-          <div className="overflow-x-auto">
+          {first && <CardSkeletons />}
+          {data && data.items.length > 0 && (
+            <CardList dim={loading}>
+              {data.items.map((p) => (
+                <RecordCard key={p.id} title={p.name} subtitle={p.contact} badge={<StatusPill p={p} />}
+                  fields={[{ label: 'Sector', value: p.sector ?? <span className="text-mute">Not set</span> }, { label: 'Last sign-in', value: p.lastLogin ? fmtDateTime(p.lastLogin) : 'Never' }]}
+                  actions={<>
+                    <button onClick={() => setResetting(p)} className={`${cardAction} text-brand`}><KeyRound size={14} aria-hidden /> Reset password</button>
+                    <button onClick={() => setToggling(p)} className={`${cardAction} ${p.active ? 'text-danger' : 'text-brand'}`}>
+                      {p.active ? <><UserRoundX size={14} aria-hidden /> Deactivate</> : <><UserRoundCheck size={14} aria-hidden /> Reactivate</>}
+                    </button>
+                  </>} />
+              ))}
+            </CardList>
+          )}
+          <div className="hidden overflow-x-auto xl:block">
             <table className="w-full min-w-[900px] table-fixed text-sm">
               <thead>
                 <tr className="h-11 bg-canvas text-left text-xs font-semibold text-mute">
@@ -118,7 +134,7 @@ export default function Pharmacists() {
           )}
 
           {data && data.total > 0 && (
-            <div className="flex items-center justify-between border-t border-line px-4 py-3 text-sm text-mute">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line px-4 py-3 text-sm text-mute">
               <span>Showing {from}–{to} of {num(data.total)} accounts</span>
               <div className="flex items-center gap-3">
                 <span>Page {data.page} of {totalPages}</span>
@@ -152,7 +168,7 @@ export default function Pharmacists() {
       {issued && (
         <Modal title={issued.title} subtitle={`${issued.data.user.name} · ${issued.data.user.sector ?? 'no sector'}`} onClose={() => setIssued(null)}>
           <Credentials contact={issued.data.user.contact} password={issued.data.temporaryPassword} emailSent={issued.data.emailSent} />
-          <div className="flex justify-end"><button className={btnPrimary} onClick={() => setIssued(null)}>Done</button></div>
+          <div className="flex justify-end [&>button]:w-full sm:[&>button]:w-auto"><button className={btnPrimary} onClick={() => setIssued(null)}>Done</button></div>
         </Modal>
       )}
 
@@ -176,7 +192,7 @@ function ResetActions({ pharmacist, onCancel, onDone }: { pharmacist: Ph; onCanc
   return (
     <>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
         <button className={btnSecondary} onClick={onCancel} disabled={busy}>Cancel</button>
         <button className={btnPrimary} onClick={go} disabled={busy}>{busy ? 'Resetting…' : 'Reset password'}</button>
       </div>
@@ -197,7 +213,7 @@ function ToggleActions({ pharmacist, onCancel, onDone }: { pharmacist: Ph; onCan
   return (
     <>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
         <button className={btnSecondary} onClick={onCancel} disabled={busy}>Cancel</button>
         <button className={pharmacist.active ? btnDanger : btnPrimary} onClick={go} disabled={busy}>{busy ? 'Saving…' : pharmacist.active ? 'Deactivate' : 'Reactivate'}</button>
       </div>
@@ -245,7 +261,7 @@ function AddModal({ onClose, onCreated }: { onClose: () => void; onCreated: (d: 
           </div>
         </div>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
           <button type="button" className={btnSecondary} onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className={btnPrimary} disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
         </div>

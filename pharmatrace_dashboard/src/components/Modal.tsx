@@ -14,17 +14,17 @@ export default function Modal({ title, subtitle, onClose, busy = false, children
   }, [busy, onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[rgba(17,24,39,0.4)] p-4"
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(17,24,39,0.4)] p-3 sm:items-center sm:p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="modal-title"
-        className="flex w-[568px] max-w-full flex-col gap-6 rounded-xl bg-white p-8 shadow-[0_16px_48px_0_rgba(17,24,39,0.1)]">
+        className="my-auto flex w-[568px] max-w-full flex-col gap-5 rounded-xl bg-white p-5 shadow-[0_16px_48px_0_rgba(17,24,39,0.1)] sm:gap-6 sm:p-8">
         <div className="flex items-start gap-4">
           <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <h2 id="modal-title" className="text-2xl font-bold">{title}</h2>
+            <h2 id="modal-title" className="text-xl font-bold sm:text-2xl">{title}</h2>
             {subtitle && <p className="text-sm text-mute">{subtitle}</p>}
           </div>
           <button type="button" data-close aria-label="Close" disabled={busy} onClick={onClose}
-            className="text-brand disabled:opacity-40"><X size={20} /></button>
+            className="-m-2 flex size-10 items-center justify-center text-brand disabled:opacity-40"><X size={20} /></button>
         </div>
         {children}
       </div>

@@ -105,11 +105,11 @@ export default function BatchDetail() {
     <div className="flex flex-col gap-4">
       {crumb}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="font-mono text-[28px] font-bold leading-normal">{b.batchNo}</h1>
+        <div className="flex min-w-0 flex-col gap-2">
+          <h1 className="break-all font-mono text-2xl font-bold leading-normal sm:text-[28px]">{b.batchNo}</h1>
           <p className="text-sm text-mute">{b.drugName} · {b.category}</p>
         </div>
-        <div className="flex gap-3">{buttons}</div>
+        <div className="flex w-full flex-wrap gap-3 sm:w-auto [&>button]:flex-1 sm:[&>button]:flex-none">{buttons}</div>
       </div>
 
       {banner && (
@@ -140,7 +140,7 @@ export default function BatchDetail() {
       </div>
 
       <div className="flex flex-wrap items-start gap-6">
-        <Card className="flex w-80 max-w-full shrink-0 flex-col gap-4">
+        <Card className="flex w-full shrink-0 flex-col gap-4 sm:w-80">
           <h2 className="text-lg font-semibold">Batch code</h2>
           <div id="batch-qr" className="flex justify-center"><QRCodeSVG value={b.link} size={160} level="M" marginSize={2} title={`QR code for batch ${b.batchNo}`} /></div>
           <p className="font-mono text-xs">{b.batchNo}</p>

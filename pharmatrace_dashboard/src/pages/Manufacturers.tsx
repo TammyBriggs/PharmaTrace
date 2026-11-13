@@ -9,6 +9,7 @@ import { fmtDay, num } from '../lib/format';
 import { Card, ErrorState, PageHeading, Skeleton, StatusChip, type ChipKind } from '../components/ui';
 import Modal, { btnDanger, btnPrimary, btnSecondary } from '../components/Modal';
 import Credentials from '../components/Credentials';
+import { CardList, CardSkeletons, RecordCard, cardAction } from '../components/MobileCards';
 
 type MStatus = 'pending' | 'active' | 'revoked';
 interface Mf { id: string; name: string; licenseNumber: string; wallet: string; country: string; status: MStatus; approvedDate: string | null; loginEmail: string | null }
@@ -105,7 +106,7 @@ export default function Manufacturers() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, licence or wallet"
             className="h-11 w-full rounded-lg border border-line bg-white pl-10 pr-3 text-sm outline-none placeholder:text-mute focus:border-brand focus:ring-2 focus:ring-brand/20" />
         </label>
-        <div className="flex gap-2" role="group" aria-label="Filter by status">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
           {FILTERS.map((f) => (
             <button key={f.key} aria-pressed={filter === f.key} onClick={() => { setFilter(f.key); setPage(1); }}
               className={`h-11 rounded-lg border px-4 text-sm font-semibold ${filter === f.key
@@ -118,7 +119,29 @@ export default function Manufacturers() {
 
       {error ? <ErrorState message={error} onRetry={reload} /> : (
         <Card className="overflow-hidden !p-0">
-          <div className="overflow-x-auto">
+          {first && <CardSkeletons />}
+          {data && data.items.length > 0 && (
+            <CardList dim={loading}>
+              {data.items.map((m) => (
+                <RecordCard key={m.id} to={`/manufacturers/${m.id}`} title={m.name} tint={m.status === 'pending'}
+                  subtitle={`${m.country} · ${m.loginEmail ? `Login: ${m.loginEmail}` : 'No login yet'}`} badge={<StatusChip kind={CHIP[m.status]} />}
+                  fields={[
+                    { label: 'Licence number', value: m.licenseNumber, mono: true },
+                    { label: 'Wallet', value: <span className="text-brand" title={m.wallet}>{shortAddr(m.wallet)}</span>, mono: true },
+                    { label: 'Approved', value: m.status === 'active' && m.approvedDate ? fmtDay(m.approvedDate) : m.status === 'pending' ? 'Awaiting approval' : 'Revoked', wide: true },
+                  ]}
+                  actions={<>
+                    <button onClick={() => setLoginFor(m)} className={`${cardAction} text-brand`}>
+                      <KeyRound size={14} aria-hidden /> {m.loginEmail ? 'Reset login' : 'Create login'}
+                    </button>
+                    {m.status === 'active'
+                      ? <button onClick={() => setRevoking(m)} className={`${cardAction} text-danger`}>Revoke</button>
+                      : <button onClick={() => runTx(m, 'approve')} className={`${cardAction} text-brand`}>{m.status === 'revoked' ? 'Reinstate' : 'Approve'}</button>}
+                  </>} />
+              ))}
+            </CardList>
+          )}
+          <div className="hidden overflow-x-auto xl:block">
             <table className="w-full min-w-[860px] table-fixed text-sm">
               <thead>
                 <tr className="h-11 bg-canvas text-left text-xs font-semibold text-mute">
@@ -173,7 +196,7 @@ export default function Manufacturers() {
           )}
 
           {data && data.total > 0 && (
-            <div className="flex items-center justify-between border-t border-line px-4 py-3 text-sm text-mute">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line px-4 py-3 text-sm text-mute">
               <span>Showing {from}–{to} of {num(data.total)} records</span>
               <div className="flex items-center gap-3">
                 <span>Page {data.page} of {totalPages}</span>
@@ -204,7 +227,7 @@ export default function Manufacturers() {
             <TriangleAlert size={18} className="mt-0.5 shrink-0" aria-hidden />
             Every batch from this manufacturer will immediately show as Revoked when scanned. It can be reinstated later.
           </div>
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
             <button className={btnSecondary} onClick={() => setRevoking(null)}>Cancel</button>
             <button className={btnDanger} onClick={() => { const m = revoking; setRevoking(null); runTx(m, 'revoke'); }}>Revoke manufacturer</button>
           </div>
@@ -239,7 +262,7 @@ function TxDialog({ tx, onClose, onRetry }: { tx: TxState; onClose: () => void; 
           {tx.errCode === 'SETUP' && (
             <p className="text-sm text-mute">This is a server or blockchain set-up issue, not a wallet problem. Start the Hardhat node, run the deploy script, then try again.</p>
           )}
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
             <button className={btnSecondary} onClick={onClose}>Close</button>
             <button className={btnPrimary} onClick={onRetry}>{tx.hash ? 'Retry saving' : 'Try again'}</button>
           </div>
@@ -308,7 +331,7 @@ function RegisterModal({ total, onClose, onCreated, onView }: {
         <div className="flex items-center gap-2 text-sm text-mute">
           <CircleCheck size={16} className="text-brand" aria-hidden /> The manufacturer can submit batches after licence review.
         </div>
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
           <button className={btnSecondary} onClick={onClose}>Close</button>
           <button className={btnPrimary} onClick={() => onView(created.licenseNumber)}>View manufacturer</button>
         </div>
@@ -347,7 +370,7 @@ function RegisterModal({ total, onClose, onCreated, onView }: {
           <p className="flex items-center gap-1.5 text-xs text-mute"><Info size={14} aria-hidden /> Creates their dashboard login with a temporary password, shown once on the next screen.</p>
         </div>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
           <button type="button" className={btnSecondary} onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className={btnPrimary} disabled={busy}>{busy ? 'Saving…' : 'Register manufacturer'}</button>
         </div>
@@ -379,7 +402,7 @@ function LoginModal({ m, onClose, onDone }: { m: Mf; onClose: () => void; onDone
     return (
       <Modal title={result.created ? 'Login created' : 'New temporary password'} subtitle={m.name} onClose={onClose}>
         <Credentials contact={result.contact} password={result.temporaryPassword} emailSent={result.emailSent} />
-        <div className="flex justify-end"><button className={btnPrimary} onClick={onClose}>Done</button></div>
+        <div className="flex justify-end [&>button]:w-full sm:[&>button]:w-auto"><button className={btnPrimary} onClick={onClose}>Done</button></div>
       </Modal>
     );
   }
@@ -399,7 +422,7 @@ function LoginModal({ m, onClose, onDone }: { m: Mf; onClose: () => void; onDone
           </div>
         )}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
           <button type="button" className={btnSecondary} onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className={btnPrimary} disabled={busy}>{busy ? 'Working…' : exists ? 'Reset password' : 'Create login'}</button>
         </div>

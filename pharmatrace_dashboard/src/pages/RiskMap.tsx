@@ -110,7 +110,7 @@ export default function RiskMap() {
             ))}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
             <Card className="flex flex-col gap-3 !p-3">
               <div ref={box} className="h-[520px] w-full overflow-hidden rounded-lg" role="application" aria-label="Map of Gasabo sectors" />
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-2 pb-1 text-xs text-mute">

@@ -57,7 +57,7 @@ export default function GlobalSearch({ canSearchManufacturers }: { canSearchManu
 
   const showPanel = open && ready;
   return (
-    <div ref={box} className="relative w-100 max-w-full">
+    <div ref={box} className="relative w-full">
       <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" aria-hidden />
       <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={onKey}
         role="combobox" aria-expanded={showPanel} aria-controls="global-search-list" aria-label="Search" autoComplete="off"

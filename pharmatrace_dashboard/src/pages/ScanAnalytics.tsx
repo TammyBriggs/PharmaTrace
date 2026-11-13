@@ -31,11 +31,11 @@ export default function ScanAnalytics() {
 
       {error ? <ErrorState message={error} onRetry={reload} /> : (
         <>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-3 sm:gap-6">
             {metrics.map(([label, n]) => (
-              <Card key={label} className="flex flex-col gap-4">
-                <p className="text-sm text-mute">{label}</p>
-                {n === undefined ? <Skeleton className="h-7 w-16" /> : <p className="text-[28px] font-bold leading-normal">{num(n)}</p>}
+              <Card key={label} className="flex flex-col gap-2 !p-3 sm:gap-4 sm:!p-5">
+                <p className="text-xs text-mute sm:text-sm">{label}</p>
+                {n === undefined ? <Skeleton className="h-7 w-16" /> : <p className="text-2xl font-bold leading-normal sm:text-[28px]">{num(n)}</p>}
               </Card>
             ))}
           </div>

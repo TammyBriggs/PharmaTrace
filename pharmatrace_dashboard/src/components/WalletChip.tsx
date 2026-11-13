@@ -28,7 +28,7 @@ export default function WalletChip() {
     return (
       <a href="https://metamask.io/download" target="_blank" rel="noreferrer"
         className={`${base} border-line text-mute`} title="Needed only for on-chain actions such as approving manufacturers">
-        <Wallet size={14} aria-hidden /> MetaMask not detected
+        <Wallet size={14} aria-hidden /> <span className="hidden sm:inline">MetaMask not detected</span><span className="sm:hidden">No wallet</span>
       </a>
     );
   }
@@ -73,7 +73,7 @@ export default function WalletChip() {
         <ChevronDown size={14} aria-hidden />
       </button>
       {open && (
-        <div role="menu" aria-label="Wallet options" className="absolute right-0 z-30 mt-2 w-72 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-card">
+        <div role="menu" aria-label="Wallet options" className="absolute right-0 z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-line bg-white py-1 shadow-card">
           <div className="border-b border-line px-4 py-3 text-xs text-mute">
             <p className="font-semibold text-ink">Connected wallet</p>
             <p className="mt-1 break-all font-mono">{w.account}</p>

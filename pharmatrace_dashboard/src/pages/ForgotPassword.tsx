@@ -37,8 +37,8 @@ export default function ForgotPassword() {
   }); };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-canvas p-4">
-      <div className="flex w-[456px] max-w-full flex-col gap-6 rounded-xl border border-line bg-white p-10 shadow-card">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-canvas p-4">
+      <div className="flex w-[456px] max-w-full flex-col gap-6 rounded-xl border border-line bg-white p-6 shadow-card sm:p-10">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-8 items-center justify-center rounded-lg bg-brand-tint"><ShieldPlus size={24} className="text-brand" aria-hidden /></div>
           <span className="text-xl font-semibold">PharmaTrace</span>
@@ -47,7 +47,7 @@ export default function ForgotPassword() {
         {step === 'email' && (
           <form onSubmit={sendCode} noValidate className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <h1 className="text-[28px] font-bold leading-normal">Forgot your password?</h1>
+              <h1 className="text-2xl font-bold leading-normal sm:text-[28px]">Forgot your password?</h1>
               <p className="text-sm text-mute">Enter your email address and we will send a 6-digit code that works for 15 minutes.</p>
             </div>
             <div className="flex flex-col gap-2">
@@ -63,7 +63,7 @@ export default function ForgotPassword() {
         {step === 'code' && (
           <form onSubmit={reset} noValidate className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <h1 className="text-[28px] font-bold leading-normal">Enter the code</h1>
+              <h1 className="text-2xl font-bold leading-normal sm:text-[28px]">Enter the code</h1>
               <p className="text-sm text-mute">If <b>{email}</b> belongs to an account, a code is on its way. Enter it with your new password.</p>
             </div>
             <div className="flex flex-col gap-2">
@@ -89,7 +89,7 @@ export default function ForgotPassword() {
         {step === 'done' && (
           <div className="flex flex-col items-start gap-4">
             <CircleCheck size={40} className="text-brand" aria-hidden />
-            <h1 className="text-[28px] font-bold leading-normal">Password updated</h1>
+            <h1 className="text-2xl font-bold leading-normal sm:text-[28px]">Password updated</h1>
             <p className="text-sm text-mute">You can sign in with your new password now.</p>
             <Link to="/login" className={`${btnPrimary} flex h-11 w-full items-center justify-center`}>Go to sign in</Link>
           </div>

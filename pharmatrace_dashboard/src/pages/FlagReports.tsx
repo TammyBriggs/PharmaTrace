@@ -8,6 +8,7 @@ import { fmtDateTime } from '../lib/batches';
 import { reportsCsv, type ReportDetail, type ReportList, type ReportRow, type ReportState } from '../lib/reports';
 import { Card, ErrorState, PageHeading, Skeleton, StatusChip } from '../components/ui';
 import Modal, { btnPrimary, btnSecondary } from '../components/Modal';
+import { CardList, CardSkeletons, RecordCard, cardAction } from '../components/MobileCards';
 
 type Filter = 'all' | ReportState;
 const CHIPS: { key: Filter; label: string }[] = [
@@ -102,11 +103,11 @@ export default function FlagReports() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-3 sm:gap-6">
         {metrics.map(([label, n]) => (
-          <div key={label} className="flex flex-col gap-2 rounded-xl border border-line bg-canvas p-5">
-            <p className="text-sm text-mute">{label}</p>
-            {n === undefined ? <Skeleton className="h-7 w-12" /> : <p className="text-[28px] font-bold leading-normal">{num(n)}</p>}
+          <div key={label} className="flex flex-col gap-2 rounded-xl border border-line bg-canvas p-3 sm:p-5">
+            <p className="text-xs text-mute sm:text-sm">{label}</p>
+            {n === undefined ? <Skeleton className="h-7 w-12" /> : <p className="text-2xl font-bold leading-normal sm:text-[28px]">{num(n)}</p>}
           </div>
         ))}
       </div>
@@ -131,8 +132,22 @@ export default function FlagReports() {
 
       {error ? <ErrorState message={error} onRetry={reload} /> : (
         <Card className="overflow-hidden !p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] table-fixed text-sm">
+          {first && <CardSkeletons />}
+          {data && data.rows.length > 0 && (
+            <CardList dim={loading}>
+              {data.rows.map((r) => (
+                <RecordCard key={r.id} mono title={r.batchNo} subtitle={r.drug ?? 'Unregistered batch'} badge={<StatusChip kind={r.state} />}
+                  fields={[{ label: 'Reason', value: r.reason, wide: true }, { label: 'Sector', value: r.sector ?? '—' },
+                    { label: 'Photo', value: r.hasImage ? (
+                      <button onClick={() => openPhoto(r.id)} disabled={photoBusy === r.id} className="inline-flex items-center gap-1 font-semibold text-brand hover:underline disabled:opacity-60">
+                        {photoBusy === r.id ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <ImageIcon size={14} aria-hidden />} View photo
+                      </button>) : <span className="text-mute">No photo</span> }]}
+                  actions={<button onClick={() => setOpenId(r.id)} className={`${cardAction} text-brand`}>{r.state === 'closed' ? 'View report' : 'Review report'}</button>} />
+              ))}
+            </CardList>
+          )}
+          <div className="hidden overflow-x-auto xl:block">
+            <table className="w-full min-w-[960px] table-fixed text-sm">
               <thead>
                 <tr className="h-12 bg-canvas text-left text-xs font-semibold text-mute">
                   <th className="w-[13%] px-4">Batch</th><th className="w-[20%] px-4">Drug</th><th className="w-[18%] px-4">Reason</th>
@@ -188,7 +203,7 @@ export default function FlagReports() {
             </div>
           )}
 
-          <div className="flex h-16 items-center justify-between border-t border-line px-4 text-xs text-mute">
+          <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line px-4 py-3 text-xs text-mute">
             <span>{first ? 'Fetching latest records' : data && data.total > 0 ? `Showing ${from}–${to} of ${num(data.total)} records` : '0 records'}</span>
             <div className="flex items-center gap-4">
               <span>Page {data?.page ?? 1} of {totalPages}</span>
@@ -275,7 +290,7 @@ function ReviewModal({ id, onClose, onDone }: { id: string; onClose: () => void;
           </div>
           {err && <p role="alert" className="text-sm text-danger">{err}</p>}
 
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
             <button type="button" className={btnSecondary} onClick={onClose} disabled={busy}>Cancel</button>
             {data.state === 'closed' ? (
               <button type="button" className={btnPrimary} disabled={busy || note.trim().length < 3} onClick={() => submit('under_review')}>Reopen investigation</button>

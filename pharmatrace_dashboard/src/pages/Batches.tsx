@@ -9,6 +9,7 @@ import TxLink from '../components/TxLink';
 import { addMonths, chipFor, shortHash, type BatchContext, type BatchDetail, type BatchList, type BStatus, type Product } from '../lib/batches';
 import { fmtDay, num } from '../lib/format';
 import { Card, ErrorState, PageHeading, Skeleton, StatusChip } from '../components/ui';
+import { CardList, CardSkeletons, RecordCard, cardAction } from '../components/MobileCards';
 import Modal, { btnPrimary, btnSecondary } from '../components/Modal';
 import { useBatchActions } from '../components/BatchActions';
 
@@ -112,7 +113,24 @@ export default function Batches() {
 
       {error ? <ErrorState message={error} onRetry={reload} /> : (
         <Card className="overflow-hidden !p-0">
-          <div className="overflow-x-auto">
+          {first && <CardSkeletons />}
+          {data && data.items.length > 0 && (
+            <CardList dim={loading}>
+              {data.items.map((b) => (
+                <RecordCard key={b.id} to={`/batches/${b.id}`} mono title={b.batchNo} subtitle={b.manufacturerName}
+                  tint={b.status === 'pending' && isReg} badge={<StatusChip kind={chipFor(b)} />}
+                  fields={[{ label: 'Drug', value: b.drugName, wide: true }, { label: 'Expiry', value: fmtDay(b.expiryDate) }, { label: 'Quantity', value: num(b.quantity) }]}
+                  actions={b.status === 'pending' && isReg ? (
+                    <>
+                      <button onClick={() => actions.start(b, 'approve')} className={`${cardAction} text-brand`}>Approve</button>
+                      <button onClick={() => actions.start(b, 'flag')} className={`${cardAction} text-danger`}>Flag</button>
+                      <Link to={`/batches/${b.id}`} className={`${cardAction} ml-auto font-normal text-brand`}>View details</Link>
+                    </>
+                  ) : <Link to={`/batches/${b.id}`} className={`${cardAction} text-brand`}>{b.status === 'flagged' ? 'View report' : 'View details'}</Link>} />
+              ))}
+            </CardList>
+          )}
+          <div className="hidden overflow-x-auto xl:block">
             <table className="w-full min-w-[860px] table-fixed text-sm">
               <thead>
                 <tr className="h-12 bg-canvas text-left text-xs font-semibold text-mute">
@@ -270,7 +288,7 @@ function SubmitModal({ ctx, onClose, onSubmitted }: { ctx: BatchContext; onClose
           <TxLink hash={created.submitTxHash} />
           <p className="text-xs text-mute">{num(created.serials.total)} unique serial numbers were generated for this batch.</p>
         </div>
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
           <button className={btnSecondary} onClick={onClose}>Close</button>
           <Link to={`/batches/${created.id}`} className={`${btnPrimary} flex items-center`}>View batch</Link>
         </div>
@@ -286,7 +304,7 @@ function SubmitModal({ ctx, onClose, onSubmitted }: { ctx: BatchContext; onClose
         {failed ? (
           <>
             <div role="alert" className="flex items-start gap-3 rounded-lg bg-[#fef2f2] p-4 text-sm text-[#b91c1c]"><TriangleAlert size={18} className="mt-0.5 shrink-0" aria-hidden /> {run.error}</div>
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
               <button className={btnSecondary} onClick={() => setRun(null)}>Back to form</button>
               <button className={btnPrimary} onClick={() => (run.hash && run.id ? void confirm(run.id, run.hash) : void go())}>{run.hash ? 'Retry saving' : 'Try again'}</button>
             </div>
@@ -336,7 +354,7 @@ function SubmitModal({ ctx, onClose, onSubmitted }: { ctx: BatchContext; onClose
           <label htmlFor="sb-no" className="text-sm font-semibold">Batch number</label>
           <input id="sb-no" className={`${field} font-mono`} value={f.batchNo} onChange={(e) => setF((s) => ({ ...s, batchNo: e.target.value.toUpperCase() }))} placeholder="e.g. RW-2026-0417" spellCheck={false} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             <label htmlFor="sb-mfg" className="text-sm font-semibold">Manufacture date</label>
             <input id="sb-mfg" type="date" max={today()} className={field} value={f.mfgDate} onChange={(e) => setF((s) => ({ ...s, mfgDate: e.target.value }))} />
@@ -348,7 +366,7 @@ function SubmitModal({ ctx, onClose, onSubmitted }: { ctx: BatchContext; onClose
         </div>
         {expiry && <p className="text-sm text-mute">Expiry date: <b className="text-ink">{fmtDay(expiry)}</b> (manufacture date + {product!.shelfLifeMonths} months). One unique serial is generated per pack.</p>}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end [&>button]:w-full sm:[&>button]:w-auto">
           <button type="button" className={btnSecondary} onClick={onClose}>Cancel</button>
           <button type="submit" className={btnPrimary}>Continue to wallet</button>
         </div>

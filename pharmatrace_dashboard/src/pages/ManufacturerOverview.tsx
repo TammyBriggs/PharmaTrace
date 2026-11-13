@@ -64,7 +64,7 @@ export default function ManufacturerOverview() {
             </div>
           )}
 
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 xl:grid-cols-4">
             <Kpi loading={loading} Icon={Layers} label="Batches submitted" value={s?.submitted ?? 0} note={`${num(s?.pending ?? 0)} awaiting review`} />
             <Kpi loading={loading} Icon={CircleCheck} label="Batches approved" value={s?.approved ?? 0} note={`${num(s?.flagged ?? 0)} flagged · ${num(s?.revoked ?? 0)} revoked`} />
             <Kpi loading={loading} Icon={Pill} label="Drugs" value={s?.drugs ?? 0} note="Distinct products" />
@@ -72,7 +72,7 @@ export default function ManufacturerOverview() {
               note={`${num(data?.scans.today ?? 0)} today · ${num(data?.scans.sectors ?? 0)} sectors`} />
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
             <Card className="flex flex-col gap-4">
               <div>
                 <h2 className="text-lg font-semibold">Scans of your batches</h2>
@@ -97,7 +97,7 @@ export default function ManufacturerOverview() {
             </Card>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-2">
             <Card className="flex flex-col gap-3">
               <h2 className="text-lg font-semibold">Needs your attention</h2>
               {loading || !data ? <Skeleton className="h-32 w-full" /> : nothingToDo ? (

@@ -38,7 +38,7 @@ export default function PackProof({ batch }: { batch: BatchDetail }) {
             When this batch was submitted, one fingerprint (a Merkle root) of all {num(batch.serialCount ?? 0)} pack serial numbers was written to the blockchain.
             The serials themselves are not on-chain. Any single pack can be proven to belong to this batch, and the contract checks the proof itself.
           </p>
-          <dl className="grid gap-3 text-sm sm:grid-cols-[auto_1fr]">
+          <dl className="grid grid-cols-[minmax(0,1fr)] gap-3 text-sm sm:grid-cols-[auto_minmax(0,1fr)]">
             <dt className="text-mute">Serial root</dt><dd className="break-all font-mono text-xs">{batch.serialRoot}</dd>
             <dt className="text-mute">Packs covered</dt><dd>{num(batch.serialCount ?? 0)}</dd>
             <dt className="text-mute">Recorded in</dt><dd><TxLink hash={batch.submitTxHash} /></dd>
