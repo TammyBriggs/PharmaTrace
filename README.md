@@ -101,7 +101,7 @@ The chain stores only wallet addresses, timestamps, statuses and hashes. Names, 
 
 You can install the mobile app without building it.
 
-1. On your Android phone, open the [latest release](https://github.com/TammyBriggs/PharmaTrace/releases/latest) and download `PharmaTrace-v1.0.0.apk`.
+1. On your Android phone, open the [latest release](https://github.com/TammyBriggs/PharmaTrace/releases/latest) and download `PharmaTrace-v1.1.0.apk`.
 2. Open the downloaded file. If Android asks, allow installs from this source (Install unknown apps).
 3. Open PharmaTrace. Patients can scan a medicine QR code without an account. Pharmacists sign in with the login the regulator created for them.
 
