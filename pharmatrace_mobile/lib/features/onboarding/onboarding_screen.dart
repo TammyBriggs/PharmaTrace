@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/strings.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/language_selector.dart';
 import '../../core/main_navigation.dart';
 import '../auth/login_screen.dart';
 import '../../core/auth_manager.dart';
@@ -15,17 +17,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
+  // title and text are keys in the string table (core/strings.dart), translated when drawn.
   final List<Map<String, String>> _onboardingData = [
     {
-      "title": "Scan & Verify",
-      "text":
-          "Use your camera to scan the QR code on any supported medicine pack.",
+      "title": "onb.scanTitle",
+      "text": "onb.scanText",
       "image": "assets/images/onboarding_verify.png",
     },
     {
-      "title": "Stay Safe",
-      "text":
-          "Instantly know if a drug is authentic, flagged, or expired before you consume it.",
+      "title": "onb.safeTitle",
+      "text": "onb.safeText",
       "image": "assets/images/onboarding_stay_safe.png",
     },
   ];
@@ -42,6 +43,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Patients see this screen before they can reach Settings, so the language switch is here too.
+            const Padding(
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
+              child: Align(alignment: Alignment.centerRight, child: LanguageSelector()),
+            ),
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -76,7 +82,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 48),
                       Text(
-                        _onboardingData[index]["title"]!,
+                        context.tr(_onboardingData[index]["title"]!),
                         style:
                             Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
@@ -85,7 +91,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        _onboardingData[index]["text"]!,
+                        context.tr(_onboardingData[index]["text"]!),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: context.colors.textSecondary,
@@ -118,7 +124,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 ),
                               );
                             },
-                            child: const Text('Get started'),
+                            child: Text(context.tr('onb.getStarted')),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -142,7 +148,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               );
                             },
                             child: Text(
-                              "I'm a pharmacist - sign in",
+                              context.tr('onb.pharmacist'),
                               style: TextStyle(
                                 color: context.colors.accent,
                                 fontWeight: FontWeight.w600,
@@ -152,7 +158,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Patients can scan without signing in.',
+                          context.tr('onb.patients'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: context.colors.textSecondary,
@@ -191,7 +197,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               curve: Curves.ease,
                             );
                           },
-                          child: const Text('Next'),
+                          child: Text(context.tr('onb.next')),
                         ),
                       ],
                     ),

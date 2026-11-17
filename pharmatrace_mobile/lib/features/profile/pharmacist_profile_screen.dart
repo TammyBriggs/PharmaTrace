@@ -7,6 +7,8 @@ import '../../core/theme.dart';
 import '../../core/theme_controller.dart';
 import '../../core/auth_manager.dart';
 import '../../core/sectors.dart';
+import '../../core/strings.dart';
+import '../../core/widgets/language_selector.dart';
 import '../../core/widgets/sector_dropdown.dart';
 import '../onboarding/onboarding_screen.dart';
 import 'privacy_notice_screen.dart';
@@ -73,9 +75,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Profile & settings',
-          style: TextStyle(
+        title: Text(
+          context.tr('profile.title'),
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
           ),
@@ -115,18 +117,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         if (isPharmacist) ...[
                           Text(
                             normalizeSector(AuthManager().pharmacistSector) != null
-                                ? 'Signed in • ${normalizeSector(AuthManager().pharmacistSector)} sector'
-                                : 'Signed in • sector not set',
+                                ? context.tr('profile.signedIn', {'sector': normalizeSector(AuthManager().pharmacistSector)})
+                                : context.tr('profile.sectorNotSet'),
                             style: TextStyle(color: c.textSecondary, fontSize: 13),
                           ),
                           if (district != null)
                             Text(
-                              '$district District, Kigali',
+                              context.tr('profile.district', {'district': district}),
                               style: TextStyle(color: c.textSecondary, fontSize: 13),
                             ),
                         ] else
                           Text(
-                            'Anonymous User',
+                            context.tr('profile.anonymous'),
                             style: TextStyle(color: c.textSecondary, fontSize: 13),
                           ),
                       ],
@@ -153,12 +155,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ThemeController().isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
                 color: c.accent,
               ),
-              title: const Text(
-                'Dark mode',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              title: Text(
+                context.tr('profile.darkMode'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               subtitle: Text(
-                'Easier on the eyes in low light.',
+                context.tr('profile.darkModeHint'),
                 style: TextStyle(color: c.textSecondary, fontSize: 13),
               ),
               value: ThemeController().isDark,
@@ -166,6 +168,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 await ThemeController().setDark(value);
                 if (mounted) setState(() {});
               },
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Language: English by default, switchable to Kinyarwanda
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: c.surface,
+              border: Border.all(color: c.border),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.translate, color: c.accent),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr('settings.language'),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            context.tr('settings.languageHint'),
+                            style: TextStyle(color: c.textSecondary, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const LanguageSelector(),
+              ],
             ),
           ),
           const SizedBox(height: 24),
@@ -185,9 +227,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Icon(Icons.shield_outlined, color: c.accent),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Privacy & consent',
-                      style: TextStyle(
+                    Text(
+                      context.tr('profile.privacyTitle'),
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -196,15 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  isPharmacist
-                      ? 'Camera access is used to scan packaging. '
-                          'Gallery access is used to change your profile photo and upload reporting evidence. '
-                          'Reports share the photo, location, batch code and notes '
-                          'you choose to submit.\n\n'
-                          'Do not include patient information. Review the details '
-                          'before submitting a report.'
-                      : 'Camera access is used to scan packaging. '
-                          'Gallery access is used to change or upload profile photos.',
+                  isPharmacist ? context.tr('profile.privacyPharmacist') : context.tr('profile.privacyPatient'),
                   style: TextStyle(
                     color: c.textSecondary,
                     height: 1.4,
@@ -219,7 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildMenuOption(
             context,
             icon: Icons.assignment_outlined,
-            title: 'Read privacy notice',
+            title: context.tr('profile.readPrivacy'),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -233,7 +267,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildMenuOption(
               context,
               icon: Icons.report_problem_outlined,
-              title: 'Report suspicious drug',
+              title: context.tr('profile.reportDrug'),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -245,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildMenuOption(
               context,
               icon: Icons.lock_reset_outlined,
-              title: 'Change password',
+              title: context.tr('profile.changePassword'),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -283,7 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               },
               child: Text(
-                'Sign out',
+                context.tr('profile.signOut'),
                 style: TextStyle(
                   color: c.accent,
                   fontWeight: FontWeight.bold,
@@ -300,13 +334,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               },
-              child: const Text('Sign in as pharmacist'),
+              child: Text(context.tr('profile.signInPharmacist')),
             ),
 
           const SizedBox(height: 24),
           Center(
             child: Text(
-              'PharmaTrace • Patient safety comes first.',
+              context.tr('profile.footer'),
               style: TextStyle(
                 color: c.textSecondary,
                 fontSize: 12,
@@ -405,8 +439,8 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not select the profile picture.'),
+        SnackBar(
+          content: Text(context.tr('profile.pictureFailed')),
         ),
       );
     } finally {
@@ -421,7 +455,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
 
     if (AuthManager().isPharmacist && _sector == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose your sector.')),
+        SnackBar(content: Text(context.tr('profile.chooseSector'))),
       );
       return;
     }
@@ -445,7 +479,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not save profile: $e'),
+          content: Text(context.tr('profile.saveFailed', {'error': e})),
         ),
       );
     }
@@ -454,7 +488,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Edit Profile'),
+      title: Text(context.tr('profile.editTitle')),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -462,15 +496,15 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
             TextField(
               controller: _nameController,
               enabled: !_isSaving && !_isPickingImage,
-              decoration: const InputDecoration(
-                labelText: 'Name / Account Title',
+              decoration: InputDecoration(
+                labelText: context.tr('profile.nameLabel'),
               ),
             ),
             if (AuthManager().isPharmacist) ...[
               const SizedBox(height: 16),
               SectorDropdown(
                 value: _sector,
-                label: 'Pharmacy sector',
+                label: context.tr('profile.sectorLabel'),
                 enabled: !_isSaving && !_isPickingImage,
                 onChanged: (value) => setState(() => _sector = value),
               ),
@@ -489,8 +523,8 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
                   : const Icon(Icons.photo_library),
               label: Text(
                 _isPickingImage
-                    ? 'Selecting picture...'
-                    : 'Choose Profile Picture',
+                    ? context.tr('profile.selecting')
+                    : context.tr('profile.choosePicture'),
               ),
             ),
           ],
@@ -501,7 +535,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
           onPressed: (_isSaving || _isPickingImage)
               ? null
               : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.tr('common.cancel')),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(minimumSize: const Size(90, 44)),
@@ -517,7 +551,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Save'),
+              : Text(context.tr('common.save')),
         ),
       ],
     );

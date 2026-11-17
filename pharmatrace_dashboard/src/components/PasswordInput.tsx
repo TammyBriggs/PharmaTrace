@@ -1,5 +1,6 @@
 import { useState, type InputHTMLAttributes } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 const base =
   'h-11 w-full rounded-lg border border-line bg-white p-3 pr-11 text-sm text-ink outline-none ' +
@@ -8,10 +9,11 @@ const base =
 /** A password box with an eye button: tap once to see what you typed, tap again to hide it. */
 export default function PasswordInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
   const [show, setShow] = useState(false);
+  const { t } = useI18n();
   return (
     <div className="relative">
       <input {...props} type={show ? 'text' : 'password'} className={base} />
-      <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? 'Hide password' : 'Show password'} aria-pressed={show}
+      <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? t('login.hide') : t('login.show')} aria-pressed={show}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-brand">
         {show ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
       </button>

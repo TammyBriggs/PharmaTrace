@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useI18n } from '../i18n';
 import { Ban, CircleCheck, CircleHelp, Clock3, Copy, ShieldAlert, TriangleAlert, type LucideIcon } from 'lucide-react';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -12,36 +13,38 @@ export function Skeleton({ className = '' }: { className?: string }) {
 export type ChipKind = 'approved' | 'authentic' | 'flagged' | 'expired' | 'pending' | 'revoked' | 'not_found' | 'duplicate' | 'under_review' | 'closed' | 'high_risk' | 'needs_review';
 
 // Class strings are written out in full so Tailwind can see them.
-const CHIP: Record<ChipKind, { label: string; cls: string; Icon: LucideIcon }> = {
-  approved: { label: 'Approved', cls: 'bg-[#f0fdfa] text-[#0f766e]', Icon: CircleCheck },
-  authentic: { label: 'Authentic', cls: 'bg-[#f0fdfa] text-[#0f766e]', Icon: CircleCheck },
-  flagged: { label: 'Flagged', cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: ShieldAlert },
-  expired: { label: 'Expired', cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
-  pending: { label: 'Pending', cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
-  revoked: { label: 'Revoked', cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: Ban },
-  not_found: { label: 'Not found', cls: 'bg-[#f3f4f6] text-mute', Icon: CircleHelp },
-  duplicate: { label: 'Duplicate', cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: Copy },
-  under_review: { label: 'Under review', cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
-  closed: { label: 'Closed', cls: 'bg-[#f3f4f6] text-mute', Icon: CircleHelp },
-  high_risk: { label: 'High risk', cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: ShieldAlert },
-  needs_review: { label: 'Needs review', cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
+const CHIP: Record<ChipKind, { cls: string; Icon: LucideIcon }> = {
+  approved: { cls: 'bg-[#f0fdfa] text-[#0f766e]', Icon: CircleCheck },
+  authentic: { cls: 'bg-[#f0fdfa] text-[#0f766e]', Icon: CircleCheck },
+  flagged: { cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: ShieldAlert },
+  expired: { cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
+  pending: { cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
+  revoked: { cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: Ban },
+  not_found: { cls: 'bg-[#f3f4f6] text-mute', Icon: CircleHelp },
+  duplicate: { cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: Copy },
+  under_review: { cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
+  closed: { cls: 'bg-[#f3f4f6] text-mute', Icon: CircleHelp },
+  high_risk: { cls: 'bg-[#fef2f2] text-[#b91c1c]', Icon: ShieldAlert },
+  needs_review: { cls: 'bg-[#fffbeb] text-[#b45309]', Icon: Clock3 },
 };
 
 export function StatusChip({ kind }: { kind: ChipKind }) {
-  const { label, cls, Icon } = CHIP[kind];
+  const { cls, Icon } = CHIP[kind];
+  const { t } = useI18n();
   return (
     <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold whitespace-nowrap ${cls}`}>
-      <Icon size={14} aria-hidden /> {label}
+      <Icon size={14} aria-hidden /> {t(`status.${kind}`)}
     </span>
   );
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { t } = useI18n();
   return (
     <div role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-line bg-white p-6">
-      <div className="flex items-center gap-2 font-semibold text-danger"><TriangleAlert size={18} /> Could not load this page</div>
+      <div className="flex items-center gap-2 font-semibold text-danger"><TriangleAlert size={18} /> {t('common.loadFailed')}</div>
       <p className="text-sm text-mute">{message}</p>
-      <button onClick={onRetry} className="h-10 rounded-lg border border-brand px-4 text-sm font-semibold text-brand">Try again</button>
+      <button onClick={onRetry} className="h-10 rounded-lg border border-brand px-4 text-sm font-semibold text-brand">{t('common.tryAgain')}</button>
     </div>
   );
 }

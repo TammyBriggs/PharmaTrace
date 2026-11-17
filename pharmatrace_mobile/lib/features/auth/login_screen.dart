@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../core/auth_manager.dart';
 import '../../data/services/api_service.dart';
@@ -94,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pharmacist Sign In'),
+        title: Text(context.tr('login.appBar')),
       ),
       body: SafeArea(
         child: Center(
@@ -104,16 +105,16 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'Welcome back',
-                  style: TextStyle(
+                Text(
+                  context.tr('login.welcome'),
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sign in to report anomalies and manage inventory.',
+                  context.tr('login.subtitle'),
                   style: TextStyle(
                     color: context.colors.textSecondary,
                   ),
@@ -122,15 +123,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextField(
                   controller: _contactController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email or Phone',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: context.tr('login.contact'),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),
                 PasswordField(
                   controller: _passwordController,
-                  label: 'Password',
+                  label: context.tr('login.password'),
                   autofillHints: const [AutofillHints.password],
                   textInputAction: TextInputAction.done,
                   onSubmitted: _isLoading ? null : _handleLogin,
@@ -160,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               setState(() => _contactController.text = email);
                             }
                           },
-                    child: Text('Forgot password?', style: TextStyle(color: context.colors.accent)),
+                    child: Text(context.tr('login.forgot'), style: TextStyle(color: context.colors.accent)),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -175,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text('Sign In'),
+                      : Text(context.tr('login.submit')),
                 ),
               ],
             ),

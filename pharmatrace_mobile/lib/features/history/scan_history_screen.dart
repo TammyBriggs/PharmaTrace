@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/status_style.dart';
+import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../data/models/batch_model.dart';
 import '../../data/services/scan_history_manager.dart';
@@ -17,7 +18,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   BatchVerdict? _selectedFilter;
 
   String _filterName(BuildContext context, BatchVerdict? verdict) {
-    if (verdict == null) return 'All results';
+    if (verdict == null) return context.tr('history.all');
     return statusStyleFor(context, verdict).label;
   }
 
@@ -25,12 +26,12 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Clear Scan History'),
-        content: const Text('Are you sure you want to clear your entire scan history? This action cannot be undone.'),
+        title: Text(context.tr('history.clearTitle')),
+        content: Text(context.tr('history.clearBody')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text('Cancel', style: TextStyle(color: dialogContext.colors.textSecondary)),
+            child: Text(context.tr('common.cancel'), style: TextStyle(color: dialogContext.colors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -43,7 +44,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
               setState(() {}); // Refresh UI to show empty state
               Navigator.pop(dialogContext);
             },
-            child: const Text('Clear'),
+            child: Text(context.tr('history.clear')),
           ),
         ],
       ),
@@ -60,7 +61,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan history', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+        title: Text(context.tr('history.title'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
         centerTitle: false,
       ),
       body: ListView(
@@ -82,7 +83,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                       value: _selectedFilter,
                       icon: Icon(Icons.arrow_drop_down, color: c.accent),
                       items: [
-                        const DropdownMenuItem<BatchVerdict?>(value: null, child: Text('All results')),
+                        DropdownMenuItem<BatchVerdict?>(value: null, child: Text(context.tr('history.all'))),
                         ...BatchVerdict.values.map((verdict) {
                           return DropdownMenuItem<BatchVerdict?>(
                             value: verdict,
@@ -100,7 +101,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                               Icon(Icons.filter_list, color: c.accent, size: 20),
                               const SizedBox(width: 8),
                               Text(
-                                '${_filterName(context, verdict)} · ${filteredScans.length} scans',
+                                context.tr('history.count', {'filter': _filterName(context, verdict), 'n': filteredScans.length}),
                                 style: TextStyle(fontWeight: FontWeight.w500, color: c.textPrimary),
                               ),
                             ],
@@ -130,7 +131,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 40.0),
               child: Center(
-                child: Text('You have not scanned any medicines yet.', style: TextStyle(color: c.textSecondary)),
+                child: Text(context.tr('history.empty'), style: TextStyle(color: c.textSecondary)),
               ),
             )
           else if (filteredScans.isEmpty)
@@ -138,7 +139,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
               padding: const EdgeInsets.only(top: 40.0),
               child: Center(
                 child: Text(
-                  'No scans match the "${_filterName(context, _selectedFilter)}" filter.',
+                  context.tr('history.noMatch', {'filter': _filterName(context, _selectedFilter)}),
                   style: TextStyle(color: c.textSecondary),
                 ),
               ),
@@ -150,7 +151,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
               child: Text(
-                'Past results reflect the time of each scan. Open one and tap "Check again" to see the current batch status.',
+                context.tr('history.note'),
                 style: TextStyle(color: c.textSecondary, fontSize: 13),
               ),
             ),
@@ -165,7 +166,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     final styles = statusStyleFor(context, batch.verdict);
     final details = [
       if (batch.batchNo != null) batch.batchNo!,
-      if (batch.serial != null) 'Pack ${batch.serial}',
+      if (batch.serial != null) context.tr('history.pack', {'serial': batch.serial}),
     ].join(' · ');
 
     return GestureDetector(

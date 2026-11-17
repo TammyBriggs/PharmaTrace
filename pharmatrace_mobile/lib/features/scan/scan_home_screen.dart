@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/brand_logo.dart';
 import '../verification/verification_result_screen.dart';
@@ -137,17 +138,17 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
               ),
               child: Column(
                 children: [
-                  const Text(
-                    'Point at the QR code on the\nmedicine box',
+                  Text(
+                    context.tr('scan.point'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Keep the code inside the frame.',
+                    context.tr('scan.keepInside'),
                     style: TextStyle(
                       color: c.textSecondary,
                     ),
@@ -285,7 +286,7 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Enter code manually',
+                          context.tr('scan.manual'),
                           style: TextStyle(
                             color: c.accent,
                             fontWeight: FontWeight.bold,
@@ -296,7 +297,7 @@ class _ScanHomeScreenState extends State<ScanHomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Scan the packaging, not a loose tablet.',
+                      context.tr('scan.packagingNote'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: c.textSecondary,
@@ -342,19 +343,19 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
     final serial = _serial.text.trim().toUpperCase();
 
     if (batch.isEmpty) {
-      setState(() => _error = 'Enter the batch number printed on the pack.');
+      setState(() => _error = context.tr('scan.errBatchEmpty'));
       return;
     }
     if (!RegExp(r'^[A-Z0-9][A-Z0-9\-/]{2,39}$').hasMatch(batch)) {
-      setState(() => _error = 'The batch number uses letters, numbers and dashes only.');
+      setState(() => _error = context.tr('scan.errBatchFormat'));
       return;
     }
     if (gtin.isNotEmpty && !RegExp(r'^\d{14}$').hasMatch(gtin)) {
-      setState(() => _error = 'The GTIN is 14 digits. Leave it empty if you are not sure.');
+      setState(() => _error = context.tr('scan.errGtin'));
       return;
     }
     if (serial.isNotEmpty && !RegExp(r'^[A-Z0-9]{1,20}$').hasMatch(serial)) {
-      setState(() => _error = 'The pack serial uses letters and numbers only.');
+      setState(() => _error = context.tr('scan.errSerial'));
       return;
     }
 
@@ -377,13 +378,13 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Enter code manually',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            Text(
+              context.tr('scan.manual'),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 4),
             Text(
-              'The batch number printed on the pack is enough.',
+              context.tr('scan.manualHint'),
               style: TextStyle(color: c.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -392,8 +393,8 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
               textCapitalization: TextCapitalization.characters,
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
-                labelText: 'Batch number',
-                hintText: 'e.g. RW-2026-0523',
+                labelText: context.tr('scan.batchNo'),
+                hintText: context.tr('scan.batchExample'),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
@@ -404,8 +405,8 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
               textInputAction: TextInputAction.next,
               maxLength: 14,
               decoration: InputDecoration(
-                labelText: 'GTIN (optional)',
-                helperText: '14 digits. Helps if two products share a batch number.',
+                labelText: context.tr('scan.gtin'),
+                helperText: context.tr('scan.gtinHelp'),
                 counterText: '',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -415,8 +416,8 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
               controller: _serial,
               textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
-                labelText: 'Pack serial (optional)',
-                helperText: 'Add it to check this exact pack. Leave empty to check the whole batch.',
+                labelText: context.tr('scan.serial'),
+                helperText: context.tr('scan.serialHelp'),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
@@ -425,7 +426,7 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
               Text(_error!, style: TextStyle(color: c.dangerFg, fontSize: 13)),
             ],
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _submit, child: const Text('Verify')),
+            ElevatedButton(onPressed: _submit, child: Text(context.tr('scan.verify'))),
             const SizedBox(height: 24),
           ],
         ),

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bell, BellOff, X } from 'lucide-react';
 import { api } from '../lib/api';
+import { useI18n } from '../i18n';
 import { ago, type NotificationItem, type NotificationsResp } from '../lib/notifications';
 
 const POLL_MS = 60_000;
 
 /** Bell with an unread dot, and a panel that slides over the right edge of the page (the page is not resized). */
 export default function NotificationPanel() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<NotificationsResp | null>(null);
   const [failed, setFailed] = useState(false);
@@ -47,7 +49,7 @@ export default function NotificationPanel() {
 
   return (
     <>
-      <button onClick={toggle} aria-label={dot ? `Notifications, ${data!.unread} new` : 'Notifications'}
+      <button onClick={toggle} aria-label={dot ? t('notif.new', { n: data!.unread }) : t('notif.title')}
         aria-expanded={open} className="relative text-brand">
         <Bell size={20} />
         {dot && <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-white bg-danger" aria-hidden />}
@@ -59,17 +61,17 @@ export default function NotificationPanel() {
         <aside role="dialog" aria-label="Notifications" aria-hidden={!open}
           className={`absolute right-0 top-0 flex h-full w-96 max-w-full flex-col border-l border-line bg-white shadow-card transition-transform duration-200 ${open ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="flex h-22 shrink-0 items-center justify-between border-b border-line px-6">
-            <h2 className="text-lg font-semibold">Notifications</h2>
-            <button ref={closeRef} onClick={() => setOpen(false)} aria-label="Close notifications" tabIndex={open ? 0 : -1}
+            <h2 className="text-lg font-semibold">{t('notif.title')}</h2>
+            <button ref={closeRef} onClick={() => setOpen(false)} aria-label={t('notif.close')} tabIndex={open ? 0 : -1}
               className="flex size-9 items-center justify-center rounded-lg text-mute hover:bg-canvas"><X size={18} /></button>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {failed && shown.length === 0 && <p className="p-6 text-sm text-mute">Could not load notifications. They will refresh automatically.</p>}
+            {failed && shown.length === 0 && <p className="p-6 text-sm text-mute">{t('notif.failed')}</p>}
             {!failed && shown.length === 0 && (
               <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
                 <BellOff size={28} className="text-brand" aria-hidden />
-                <p className="font-semibold">You're all caught up</p>
-                <p className="text-sm text-mute">Updates from the last 30 days appear here.</p>
+                <p className="font-semibold">{t('notif.caughtUp')}</p>
+                <p className="text-sm text-mute">{t('notif.caughtUpBody')}</p>
               </div>
             )}
             <ul>
@@ -82,7 +84,7 @@ export default function NotificationPanel() {
                       <time dateTime={n.at} className="shrink-0 text-xs text-mute">{ago(n.at)}</time>
                     </div>
                     <p className="mt-1 text-sm text-mute">{n.body}</p>
-                    {n.isNew && <span className="sr-only">New</span>}
+                    {n.isNew && <span className="sr-only">{t('notif.newLabel')}</span>}
                   </div>
                 </li>
               ))}

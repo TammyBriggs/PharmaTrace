@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/password_field.dart';
 import '../../core/widgets/password_rules.dart';
@@ -46,7 +47,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       await action();
     } catch (e) {
-      if (mounted) setState(() => _error = e is ApiException ? e.message : 'Something went wrong. Please try again.');
+      if (mounted) setState(() => _error = e is ApiException ? e.message : context.tr('common.somethingWrong'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -90,13 +91,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _heading('Forgot your password?', 'Enter your email address. We will send a 6-digit code that works for 15 minutes.'),
+        _heading(context.tr('fp.title'), context.tr('fp.intro')),
         TextField(
           controller: _email,
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
           onChanged: (_) => setState(() {}),
-          decoration: const InputDecoration(labelText: 'Email address', border: OutlineInputBorder()),
+          decoration: InputDecoration(labelText: context.tr('fp.email'), border: const OutlineInputBorder()),
         ),
         if (_error != null) ...[
           const SizedBox(height: 12),
@@ -105,11 +106,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: (_busy || !_email.text.contains('@')) ? null : _sendCode,
-          child: _busy ? _spinner() : const Text('Send code'),
+          child: _busy ? _spinner() : Text(context.tr('fp.send')),
         ),
         const SizedBox(height: 16),
         Text(
-          'No email on your account, or no code arrives? Ask a regulator to reset your password from the dashboard.',
+          context.tr('fp.noCode'),
           style: TextStyle(color: c.textSecondary, fontSize: 12, height: 1.4),
         ),
       ],
@@ -123,7 +124,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _heading('Enter the code', 'If ${_email.text.trim()} belongs to an account, a code is on its way. Enter it with your new password.'),
+        _heading(context.tr('fp.codeTitle'), context.tr('fp.codeIntro', {'email': _email.text.trim()})),
         TextField(
           controller: _code,
           keyboardType: TextInputType.number,
@@ -132,12 +133,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           autofillHints: const [AutofillHints.oneTimeCode],
           onChanged: (_) => setState(() {}),
           style: const TextStyle(letterSpacing: 6, fontFamily: 'monospace', fontSize: 18),
-          decoration: const InputDecoration(labelText: '6-digit code', counterText: '', border: OutlineInputBorder()),
+          decoration: InputDecoration(labelText: context.tr('fp.code'), counterText: '', border: const OutlineInputBorder()),
         ),
         const SizedBox(height: 16),
         PasswordField(
           controller: _new,
-          label: 'New password',
+          label: context.tr('fp.new'),
           textInputAction: TextInputAction.next,
           onChanged: (_) => setState(() {}),
         ),
@@ -146,14 +147,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 16),
         PasswordField(
           controller: _again,
-          label: 'Repeat the new password',
+          label: context.tr('fp.repeat'),
           textInputAction: TextInputAction.done,
           onChanged: (_) => setState(() {}),
         ),
         if (mismatch)
           Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Text('The two passwords do not match.', style: TextStyle(color: c.dangerFg, fontSize: 12)),
+            child: Text(context.tr('fp.mismatch'), style: TextStyle(color: c.dangerFg, fontSize: 12)),
           ),
         if (_error != null) ...[
           const SizedBox(height: 12),
@@ -162,7 +163,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: (_busy || !ready) ? null : _reset,
-          child: _busy ? _spinner() : const Text('Set new password'),
+          child: _busy ? _spinner() : Text(context.tr('fp.setNew')),
         ),
         const SizedBox(height: 12),
         Center(
@@ -173,7 +174,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       _step = _Step.email;
                       _error = null;
                     }),
-            child: Text('Send a new code', style: TextStyle(color: c.accent)),
+            child: Text(context.tr('fp.resend'), style: TextStyle(color: c.accent)),
           ),
         ),
       ],
@@ -187,8 +188,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       children: [
         Icon(Icons.check_circle, size: 48, color: c.successFg),
         const SizedBox(height: 16),
-        _heading('Password updated', 'You can sign in with your new password now.'),
-        ElevatedButton(onPressed: () => Navigator.pop(context, _email.text.trim()), child: const Text('Back to sign in')),
+        _heading(context.tr('fp.doneTitle'), context.tr('fp.doneBody')),
+        ElevatedButton(onPressed: () => Navigator.pop(context, _email.text.trim()), child: Text(context.tr('fp.backToSignIn'))),
       ],
     );
   }
@@ -196,7 +197,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reset password')),
+      appBar: AppBar(title: Text(context.tr('fp.appBar'))),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

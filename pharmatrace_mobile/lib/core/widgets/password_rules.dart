@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../strings.dart';
 import '../theme.dart';
 
 /// The same rules the server enforces, so people see what is wrong before they submit.
 class PasswordRule {
-  final String label;
+  /// Key in the string table (core/strings.dart), so the rule is shown in the chosen language.
+  final String labelKey;
   final bool Function(String) ok;
-  const PasswordRule(this.label, this.ok);
+  const PasswordRule(this.labelKey, this.ok);
 }
 
 final List<PasswordRule> passwordRules = [
-  PasswordRule('At least 8 characters', (p) => p.length >= 8),
-  PasswordRule('At least one letter', (p) => RegExp(r'[A-Za-z]').hasMatch(p)),
-  PasswordRule('At least one number', (p) => RegExp(r'\d').hasMatch(p)),
-  PasswordRule('No space at the start or end', (p) => p == p.trim()),
+  PasswordRule('pw.ruleLen', (p) => p.length >= 8),
+  PasswordRule('pw.ruleLetter', (p) => RegExp(r'[A-Za-z]').hasMatch(p)),
+  PasswordRule('pw.ruleDigit', (p) => RegExp(r'\d').hasMatch(p)),
+  PasswordRule('pw.ruleSpace', (p) => p == p.trim()),
 ];
 
 bool passwordMeetsRules(String p) => passwordRules.every((r) => r.ok(p));
@@ -40,7 +42,7 @@ class PasswordRulesList extends StatelessWidget {
                   color: r.ok(password) && password.isNotEmpty ? c.successFg : c.textSecondary,
                 ),
                 const SizedBox(width: 8),
-                Text(r.label, style: TextStyle(fontSize: 12, color: c.textSecondary)),
+                Text(context.tr(r.labelKey), style: TextStyle(fontSize: 12, color: c.textSecondary)),
               ],
             ),
           ),

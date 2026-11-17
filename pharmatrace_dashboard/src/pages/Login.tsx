@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldCheck, ShieldPlus } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { LanguageSwitch, useI18n } from '../i18n';
 
 const field =
   'h-11 w-full rounded-lg border border-line bg-white p-3 text-sm text-ink outline-none ' +
@@ -9,6 +10,7 @@ const field =
 
 export default function Login() {
   const { user, login } = useAuth();
+  const { t } = useI18n();
   const nav = useNavigate();
   const loc = useLocation() as { state?: { from?: { pathname: string } } };
   const [contact, setContact] = useState('');
@@ -28,7 +30,7 @@ export default function Login() {
       await login(contact, password, remember);
       nav(loc.state?.from?.pathname ?? '/overview', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.');
+      setError(err instanceof Error ? err.message : t('login.failed'));
     } finally {
       setBusy(false);
     }
@@ -36,6 +38,7 @@ export default function Login() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-canvas p-4">
+      <LanguageSwitch className="self-center" />
       <form onSubmit={onSubmit} noValidate
         className="flex w-[456px] max-w-full flex-col gap-7 rounded-xl border border-line bg-white p-6 shadow-card sm:p-10">
         <div className="flex items-center gap-2.5">
@@ -46,23 +49,23 @@ export default function Login() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold leading-normal sm:text-[28px]">Welcome back</h1>
-          <p className="text-sm text-mute">Sign in to your regulatory workspace.</p>
+          <h1 className="text-2xl font-bold leading-normal sm:text-[28px]">{t('login.welcome')}</h1>
+          <p className="text-sm text-mute">{t('login.subtitle')}</p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="email" className="text-sm font-semibold">Email address</label>
+          <label htmlFor="email" className="text-sm font-semibold">{t('login.email')}</label>
           <input id="email" type="email" autoComplete="username" required className={field}
-            placeholder="name@organisation.rw" value={contact} onChange={(e) => setContact(e.target.value)} />
+            placeholder={t('login.emailPlaceholder')} value={contact} onChange={(e) => setContact(e.target.value)} />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="password" className="text-sm font-semibold">Password</label>
+          <label htmlFor="password" className="text-sm font-semibold">{t('login.password')}</label>
           <div className="relative">
             <input id="password" type={show ? 'text' : 'password'} autoComplete="current-password" required
               className={`${field} pr-11`} value={password} onChange={(e) => setPassword(e.target.value)} />
             <button type="button" onClick={() => setShow((s) => !s)}
-              aria-label={show ? 'Hide password' : 'Show password'}
+              aria-label={show ? t('login.hide') : t('login.show')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-brand">
               {show ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
             </button>
@@ -73,9 +76,9 @@ export default function Login() {
           <label className="flex cursor-pointer items-center gap-2">
             <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)}
               className="size-4 accent-brand" />
-            Remember me
+            {t('login.remember')}
           </label>
-          <Link to="/forgot-password" className="font-semibold text-brand hover:underline">Forgot password?</Link>
+          <Link to="/forgot-password" className="font-semibold text-brand hover:underline">{t('login.forgot')}</Link>
         </div>
 
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
@@ -83,16 +86,16 @@ export default function Login() {
         <button type="submit" disabled={busy || !contact || !password}
           className="h-11 w-full rounded-lg bg-brand text-sm font-semibold text-white transition
                      hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60">
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? t('login.busy') : t('login.submit')}
         </button>
 
-        <p className="text-xs text-mute">For authorised regulators and administrators only.</p>
+        <p className="text-xs text-mute">{t('login.authorisedOnly')}</p>
       </form>
 
       <div className="flex flex-col items-center gap-2 text-xs">
         <ShieldCheck size={20} className="text-brand" aria-hidden />
-        <p>Rwanda Food and Drugs Authority</p>
-        <p className="text-mute">Protecting the integrity of Rwanda’s medicine supply.</p>
+        <p>{t('brand.authority')}</p>
+        <p className="text-mute">{t('brand.protecting')}</p>
       </div>
     </div>
   );

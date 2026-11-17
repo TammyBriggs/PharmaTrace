@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/auth_manager.dart';
 import '../../core/main_navigation.dart';
+import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/password_field.dart';
 import '../../core/widgets/password_rules.dart';
@@ -57,11 +58,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         );
       } else {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('cp.changed'))));
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e is ApiException ? e.message : 'Something went wrong. Please try again.');
+      setState(() => _error = e is ApiException ? e.message : context.tr('common.somethingWrong'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -95,7 +96,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       canPop: !widget.forced,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.forced ? 'Choose a new password' : 'Change password'),
+          title: Text(widget.forced ? context.tr('cp.chooseTitle') : context.tr('profile.changePassword')),
           automaticallyImplyLeading: !widget.forced,
         ),
         body: SafeArea(
@@ -106,34 +107,33 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               children: [
                 if (widget.forced) ...[
                   Text(
-                    'Welcome, ${AuthManager().userName}.',
+                    context.tr('cp.welcome', {'name': AuthManager().userName}),
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'You signed in with a temporary password from the regulator. '
-                    'Replace it with one only you know to continue.',
+                    context.tr('cp.tempIntro'),
                     style: TextStyle(color: c.textSecondary, height: 1.4),
                   ),
                   const SizedBox(height: 24),
                 ],
-                _field(widget.forced ? 'Temporary password' : 'Current password', _current),
+                _field(widget.forced ? context.tr('cp.temporary') : context.tr('cp.current'), _current),
                 const SizedBox(height: 16),
-                _field('New password', _new),
+                _field(context.tr('fp.new'), _new),
                 const SizedBox(height: 8),
                 PasswordRulesList(password: _new.text),
                 const SizedBox(height: 16),
-                _field('Repeat the new password', _again, action: TextInputAction.done),
+                _field(context.tr('fp.repeat'), _again, action: TextInputAction.done),
                 if (mismatch)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text('The two passwords do not match.', style: TextStyle(color: c.dangerFg, fontSize: 12)),
+                    child: Text(context.tr('fp.mismatch'), style: TextStyle(color: c.dangerFg, fontSize: 12)),
                   ),
                 if (_new.text.isNotEmpty && _new.text == _current.text)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      'Choose a password different from the current one.',
+                      context.tr('cp.same'),
                       style: TextStyle(color: c.dangerFg, fontSize: 12),
                     ),
                   ),
@@ -150,14 +150,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           width: 20,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : Text(widget.forced ? 'Save and continue' : 'Change password'),
+                      : Text(widget.forced ? context.tr('cp.saveContinue') : context.tr('profile.changePassword')),
                 ),
                 if (widget.forced) ...[
                   const SizedBox(height: 12),
                   Center(
                     child: TextButton(
                       onPressed: _busy ? null : _signOut,
-                      child: Text('Sign out', style: TextStyle(color: c.accent)),
+                      child: Text(context.tr('profile.signOut'), style: TextStyle(color: c.accent)),
                     ),
                   ),
                 ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'strings.dart';
 import '../features/scan/scan_home_screen.dart';
 import '../features/history/scan_history_screen.dart';
 import '../features/profile/pharmacist_profile_screen.dart';
@@ -35,9 +36,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         if (isWarning) {
           _lastPressedAt = DateTime.now();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Press back again to exit'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(context.tr('nav.backAgain')),
+              duration: const Duration(seconds: 2),
             ),
           );
         } else {
@@ -49,10 +50,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: (index) => setState(() => _selectedIndex = index),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
-            BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+          items: [
+            BottomNavigationBarItem(icon: const Icon(Icons.qr_code_scanner), label: context.tr('nav.scan')),
+            BottomNavigationBarItem(icon: const Icon(Icons.history), label: context.tr('nav.history')),
+            BottomNavigationBarItem(icon: const Icon(Icons.person_outline), label: context.tr('nav.profile')),
           ],
         ),
       ),

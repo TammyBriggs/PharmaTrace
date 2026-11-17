@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
 import 'core/theme_controller.dart';
+import 'core/language_controller.dart';
+import 'core/strings.dart';
 import 'core/auth_manager.dart';
 import 'core/main_navigation.dart';
 import 'features/auth/change_password_screen.dart';
@@ -13,6 +15,7 @@ void main() async {
   await AuthManager().init();
   await ScanHistoryManager().init();
   await ThemeController().init();
+  await LanguageController().init();
 
   runApp(const PharmaTraceApp());
 }
@@ -26,15 +29,21 @@ class PharmaTraceApp extends StatelessWidget {
     final bool startAtMain =
         AuthManager().hasCompletedOnboarding;
 
-    // Rebuilds the whole app when the light/dark switch in Settings changes.
+    // Rebuilds the whole app when the light/dark or language switch in Settings changes.
     return ListenableBuilder(
-      listenable: ThemeController(),
+      listenable: Listenable.merge([ThemeController(), LanguageController()]),
       builder: (context, _) => MaterialApp(
         title: 'PharmaTrace',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeController().mode,
+
+        // Screens read the language from this scope (context.tr), so they redraw in place when it changes.
+        builder: (context, child) => LanguageScope(
+          language: LanguageController().language,
+          child: child ?? const SizedBox.shrink(),
+        ),
 
         // Returning users skip the splash/onboarding flow.
         // New users start at the splash screen.

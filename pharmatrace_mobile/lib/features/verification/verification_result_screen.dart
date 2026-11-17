@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/auth_manager.dart';
 import '../../core/format.dart';
+import '../../core/language_controller.dart';
+import '../../core/strings.dart';
 import '../../core/status_style.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/skeleton.dart';
@@ -72,7 +74,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
       if (!mounted) return;
       if (gtin == null) {
         if (_batch == null) {
-          setState(() => _error = 'Add the GTIN printed on the pack, or pick the product, to continue.');
+          setState(() => _error = context.tr('result.needGtin'));
         }
         return;
       }
@@ -81,7 +83,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
       await _load();
     } catch (e) {
       if (!mounted) return;
-      final message = e is ApiException ? e.message : 'Something went wrong. Please try again.';
+      final message = e is ApiException ? e.message : context.tr('common.somethingWrong');
       setState(() {
         // Keep showing an earlier result if there is one; otherwise show the error page.
         if (_batch == null) _error = message;
@@ -105,7 +107,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Which product is it?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              Text(context.tr('result.whichProduct'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               const SizedBox(height: 4),
               Text(e.message, style: TextStyle(color: c.textSecondary, fontSize: 13)),
               const SizedBox(height: 12),
@@ -129,20 +131,17 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Record this sale?'),
-        content: const Text(
-          'This pack will be marked as dispensed. It cannot be undone, and '
-          'any later scan of this exact pack will be flagged.',
-        ),
+        title: Text(context.tr('result.recordSaleTitle')),
+        content: Text(context.tr('result.recordSaleBody')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(context.tr('common.cancel')),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(minimumSize: const Size(120, 44)),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Mark as dispensed'),
+            child: Text(context.tr('result.markDispensedConfirm')),
           ),
         ],
       ),
@@ -163,12 +162,12 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
         _dispensing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sale recorded. Future scans of this pack will be flagged.')),
+        SnackBar(content: Text(context.tr('result.saleRecorded'))),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _dispensing = false);
-      final message = e is ApiException ? e.message : 'Could not record the sale. Please try again.';
+      final message = e is ApiException ? e.message : context.tr('result.saleFailed');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       // The pack changed since it was scanned: show its current state.
       if (e is ApiException && (e.code == 'ALREADY_DISPENSED' || e.code == 'NOT_DISPENSABLE')) {
@@ -215,10 +214,20 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
   /// The server's message for this verdict is written for pharmacists ("Do not dispense it again").
   /// Patients get words that say what is known and what is not.
   String _verdictMessage(DrugBatch batch) {
-    if (!_isPatientDuplicate(batch)) return batch.message;
-    final when = batch.dispensedAt != null ? ' on ${fmtKigaliDateTime(batch.dispensedAt!)}' : '';
-    return 'This medicine is registered and its batch is approved. '
-        'This exact pack was recorded as sold$when.';
+    if (_isPatientDuplicate(batch)) {
+      final when = batch.dispensedAt != null
+          ? context.tr('result.on', {'date': fmtKigaliDateTime(batch.dispensedAt!)})
+          : '';
+      return context.tr('result.patientSold', {'when': when});
+    }
+    // In English the server's own wording is shown as sent. In Kinyarwanda the same messages come from the
+    // app's string table (they depend only on the verdict and on pack versus batch), so the safety advice
+    // is in the person's language even though the server answers in English.
+    if (!LanguageController().isKinyarwanda) return batch.message;
+    final scope = batch.isPack ? 'pack' : 'batch';
+    final key = 'msg.${batch.verdict.name}.$scope';
+    final text = context.tr(key);
+    return text == key ? batch.message : text;
   }
 
   Widget _duplicateExplainer(BuildContext context) {
@@ -258,15 +267,14 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
           point(
             Icons.shopping_bag_outlined,
             c.successFg,
-            'Just bought it? This is normal.',
-            'Each pack can be sold once. The pharmacy marks it as sold at the counter, so your own pack shows this result.',
+            context.tr('result.justBoughtTitle'),
+            context.tr('result.justBoughtBody'),
           ),
           point(
             Icons.report_problem_outlined,
             c.warningFg,
-            'Did not just buy it?',
-            'Someone may have copied this code onto another pack. Do not use the medicine and tell the pharmacy '
-                'or the Rwanda Food and Drugs Authority where you got it.',
+            context.tr('result.notBoughtTitle'),
+            context.tr('result.notBoughtBody'),
           ),
         ],
       ),
@@ -332,8 +340,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
             _notice(
               context,
               Icons.history,
-              'Saved result from ${fmtKigaliDateTime(batch.checkedAt)}. '
-              'Check again to see the current status.',
+              context.tr('result.savedFrom', {'date': fmtKigaliDateTime(batch.checkedAt)}),
               fg: c.textSecondary,
               bg: c.neutralBg,
             ),
@@ -344,7 +351,11 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
             _notice(
               context,
               Icons.check_circle_outline,
-              'Recorded as dispensed${batch.dispensedAt != null ? ' on ${fmtKigaliDateTime(batch.dispensedAt!)}' : ''}.',
+              context.tr('result.recorded', {
+                'when': batch.dispensedAt != null
+                    ? context.tr('result.on', {'date': fmtKigaliDateTime(batch.dispensedAt!)})
+                    : '',
+              }),
               fg: c.successFg,
               bg: c.successBg,
             ),
@@ -359,29 +370,27 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
             Text(batch.brandName!, style: TextStyle(color: c.textSecondary)),
           ],
           const SizedBox(height: 24),
-          _infoRow(context, Icons.medication_outlined, 'Form and pack size', batch.formLine),
-          _infoRow(context, Icons.confirmation_number_outlined, 'Batch', batch.batchNo, mono: true),
-          _infoRow(context, Icons.qr_code_scanner_outlined, 'Pack serial', batch.serial, mono: true),
-          _infoRow(context, Icons.business_outlined, 'Manufacturer', batch.manufacturerName),
-          _infoRow(context, Icons.factory_outlined, 'Manufactured', fmtDay(batch.mfgDate)),
-          _infoRow(context, Icons.event_outlined, 'Expires', fmtDay(batch.expiryDate)),
+          _infoRow(context, Icons.medication_outlined, context.tr('result.formPack'), batch.formLine),
+          _infoRow(context, Icons.confirmation_number_outlined, context.tr('result.batch'), batch.batchNo, mono: true),
+          _infoRow(context, Icons.qr_code_scanner_outlined, context.tr('result.packSerial'), batch.serial, mono: true),
+          _infoRow(context, Icons.business_outlined, context.tr('result.manufacturer'), batch.manufacturerName),
+          _infoRow(context, Icons.factory_outlined, context.tr('result.manufactured'), fmtDay(batch.mfgDate)),
+          _infoRow(context, Icons.event_outlined, context.tr('result.expires'), fmtDay(batch.expiryDate)),
           if (batch.isPack && batch.dispensedAt != null && !justDispensed)
-            _infoRow(context, Icons.local_pharmacy_outlined, 'Dispensed', fmtKigaliDateTime(batch.dispensedAt!)),
+            _infoRow(context, Icons.local_pharmacy_outlined, context.tr('result.dispensed'), fmtKigaliDateTime(batch.dispensedAt!)),
           _infoRow(context, Icons.tag, 'GTIN', batch.gtin, mono: true),
           if (!batch.isPack && batch.verdict != BatchVerdict.notFound)
             _notice(
               context,
               Icons.info_outline,
               AuthManager().isPharmacist
-                  ? 'This code identifies a whole batch, not a single pack, so "Mark as Dispensed" is not shown. '
-                      'Scan the code printed on the pack itself to record a sale.'
-                  : 'This code identifies a whole batch, not a single pack. '
-                      'Scan the code printed on the pack itself to check that pack.',
+                  ? context.tr('result.batchNoticePharmacist')
+                  : context.tr('result.batchNoticePatient'),
               fg: c.textSecondary,
               bg: c.neutralBg,
             ),
           Text(
-            'Checked ${fmtKigaliDateTime(batch.checkedAt)} against: ${batch.source}.',
+            context.tr('result.checked', {'date': fmtKigaliDateTime(batch.checkedAt), 'source': batch.source}),
             style: TextStyle(color: c.textSecondary, fontSize: 12),
           ),
         ],
@@ -404,7 +413,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
                   width: 20,
                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                 )
-              : const Text('Check again'),
+              : Text(context.tr('result.checkAgain')),
         ),
       if (canDispense)
         OutlinedButton(
@@ -420,7 +429,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
                   width: 20,
                   child: CircularProgressIndicator(strokeWidth: 2, color: c.accent),
                 )
-              : Text('Mark as Dispensed', style: TextStyle(color: c.accent, fontWeight: FontWeight.bold)),
+              : Text(context.tr('result.markDispensed'), style: TextStyle(color: c.accent, fontWeight: FontWeight.bold)),
         ),
       if (batch.gtin != null && batch.batchNo != null)
         OutlinedButton.icon(
@@ -430,7 +439,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           icon: Icon(Icons.timeline, color: c.accent),
-          label: Text('View batch history', style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
+          label: Text(context.tr('result.viewHistory'), style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w600)),
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(
@@ -453,7 +462,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
               ),
             );
           },
-          child: const Text('Report Product'),
+          child: Text(context.tr('result.report')),
         ),
     ];
 
@@ -487,17 +496,17 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
             Icon(Icons.error_outline, size: 48, color: c.dangerFg),
             const SizedBox(height: 16),
             Text(
-              'Could not verify this code',
+              context.tr('result.errorTitle'),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(_error ?? '', textAlign: TextAlign.center, style: TextStyle(color: c.textSecondary)),
             const SizedBox(height: 24),
-            ElevatedButton(onPressed: _load, child: const Text('Try again')),
+            ElevatedButton(onPressed: _load, child: Text(context.tr('common.tryAgain'))),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Scan another code', style: TextStyle(color: c.accent)),
+              child: Text(context.tr('result.scanAnother'), style: TextStyle(color: c.accent)),
             ),
           ],
         ),
@@ -529,7 +538,7 @@ class _VerificationResultScreenState extends State<VerificationResultScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Batch Verification')),
+      appBar: AppBar(title: Text(context.tr('result.appBar'))),
       body: body,
     );
   }

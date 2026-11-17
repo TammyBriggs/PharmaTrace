@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../strings.dart';
+
 /// A password box with an eye button: tap once to see what you typed, tap again to hide it.
 class PasswordField extends StatefulWidget {
   final TextEditingController controller;
@@ -41,7 +43,7 @@ class _PasswordFieldState extends State<PasswordField> {
         labelText: widget.label,
         border: const OutlineInputBorder(),
         suffixIcon: IconButton(
-          tooltip: _visible ? 'Hide password' : 'Show password',
+          tooltip: _visible ? context.tr('pw.hide') : context.tr('pw.show'),
           icon: Icon(_visible ? Icons.visibility_off_outlined : Icons.visibility_outlined),
           onPressed: () => setState(() => _visible = !_visible),
         ),

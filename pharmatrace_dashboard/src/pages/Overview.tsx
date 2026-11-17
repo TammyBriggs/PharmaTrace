@@ -3,7 +3,8 @@ import { ArrowUpRight, CalendarDays, ShieldCheck, type LucideIcon, Building2, Cl
 import { useAuth } from '../auth/AuthContext';
 import { useApi } from '../lib/useApi';
 import type { OverviewData, VerdictKey } from '../lib/types';
-import { categoryLabel, fmtDay, num } from '../lib/format';
+import { fmtDay, num } from '../lib/format';
+import { useI18n, type Key } from '../i18n';
 import ManufacturerOverview from './ManufacturerOverview';
 import Carousel, { CARD_BASIS } from '../components/Carousel';
 import { Card, ErrorState, PageHeading, Skeleton, StatusChip } from '../components/ui';
@@ -12,10 +13,8 @@ const VERDICT_COLOR: Record<VerdictKey, string> = {
   authentic: '#0f766e', flagged: '#b91c1c', expired: '#b45309',
   pending: '#f59e0b', revoked: '#7f1d1d', not_found: '#9ca3af', duplicate: '#ef4444',
 };
-const VERDICT_LABEL: Record<VerdictKey, string> = {
-  authentic: 'Authentic', flagged: 'Flagged', expired: 'Expired',
-  pending: 'Pending', revoked: 'Revoked', not_found: 'Not found', duplicate: 'Duplicate',
-};
+// The words come from the dictionary (status.<key>); this list only fixes the order.
+const VERDICT_KEYS: VerdictKey[] = ['authentic', 'flagged', 'expired', 'pending', 'revoked', 'not_found', 'duplicate'];
 // Figma lists these four; pending/revoked appear only when there is something to show.
 const ALWAYS: VerdictKey[] = ['authentic', 'flagged', 'expired', 'not_found'];
 
@@ -27,6 +26,7 @@ function niceStep(raw: number) {
 }
 
 function LineChart({ points }: { points: { date: string; count: number }[] }) {
+  const { t } = useI18n();
   const max = Math.max(0, ...points.map((p) => p.count));
   const step = niceStep(max / 3);
   const top = step * 3;
@@ -44,7 +44,7 @@ function LineChart({ points }: { points: { date: string; count: number }[] }) {
           {ticks.map((t) => <span key={t}>{num(t)}</span>)}
         </div>
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-39 min-w-0 flex-1"
-          role="img" aria-label={`Scans per day, ${num(points.reduce((s, p) => s + p.count, 0))} in total`}>
+          role="img" aria-label={t('ov.perDay', { n: num(points.reduce((s, p) => s + p.count, 0)) })}>
           {ticks.map((t) => (
             <line key={t} x1="0" x2={W} y1={y(t)} y2={y(t)} stroke="#e5e7eb" vectorEffect="non-scaling-stroke" />
           ))}
@@ -59,8 +59,9 @@ function LineChart({ points }: { points: { date: string; count: number }[] }) {
 }
 
 function Donut({ verdicts }: { verdicts: OverviewData['verdicts'] }) {
+  const { t } = useI18n();
   const R = 72, C = 2 * Math.PI * R;
-  const keys = (Object.keys(VERDICT_LABEL) as VerdictKey[]).filter((k) => verdicts[k] > 0);
+  const keys = VERDICT_KEYS.filter((k) => verdicts[k] > 0);
   let offset = 0;
   const pct = verdicts.total ? ((verdicts.authentic / verdicts.total) * 100).toFixed(1) : null;
   return (
@@ -79,7 +80,7 @@ function Donut({ verdicts }: { verdicts: OverviewData['verdicts'] }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-bold">{pct ? `${pct}%` : '—'}</span>
-        <span className="text-xs text-mute">Authentic</span>
+        <span className="text-xs text-mute">{t('status.authentic')}</span>
       </div>
     </div>
   );
@@ -102,6 +103,7 @@ function Kpi({ label, value, note, Icon, loading }: {
 
 export default function Overview() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const isManufacturer = user?.role === 'manufacturer';
   const { data, error, loading, reload } = useApi<OverviewData>(isManufacturer ? null : '/overview');
 
@@ -109,13 +111,14 @@ export default function Overview() {
     return <ManufacturerOverview />;
   }
 
+  const catLabel = (c: string) => { const k = `cat.${c}` as Key; return t(k) === k ? c : t(k); };   // unknown categories show as the server sent them
   const pts = data?.scansOverTime.points ?? [];
   const k = data?.kpis;
   const catMax = Math.max(1, ...(data?.categories.map((c) => c.count) ?? []));
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeading title="Overview" subtitle="Supply chain integrity across Gasabo district Kigali"
+      <PageHeading title={t('ov.title')} subtitle={t('ov.subtitle')}
         right={
           <div className="flex h-10 items-center gap-2 rounded-lg border border-line px-3 text-sm">
             <CalendarDays size={16} className="text-brand" aria-hidden /> {fmtDay(new Date())}
@@ -124,51 +127,51 @@ export default function Overview() {
 
       {error ? <ErrorState message={error} onRetry={reload} /> : (
         <>
-          <Carousel label="Key metrics">
-            <Kpi loading={loading} Icon={Building2} label="Active manufacturers"
-              value={num(k?.manufacturers.active ?? 0)} note={`${num(k?.manufacturers.thisMonth ?? 0)} registered this month`} />
-            <Kpi loading={loading} Icon={Clock3} label="Approved batches"
-              value={num(k?.batches.approved ?? 0)} note={`${num(k?.batches.pending ?? 0)} awaiting review`} />
-            <Kpi loading={loading} Icon={ShieldAlert} label="Flagged batches"
-              value={num(k?.batches.flagged ?? 0)} note="Currently flagged on-chain" />
-            <Kpi loading={loading} Icon={ScanLine} label="Scans today"
+          <Carousel label={t('ov.kpiLabel')}>
+            <Kpi loading={loading} Icon={Building2} label={t('ov.activeMf')}
+              value={num(k?.manufacturers.active ?? 0)} note={t('ov.mfThisMonth', { n: num(k?.manufacturers.thisMonth ?? 0) })} />
+            <Kpi loading={loading} Icon={Clock3} label={t('ov.approvedBatches')}
+              value={num(k?.batches.approved ?? 0)} note={t('ov.awaiting', { n: num(k?.batches.pending ?? 0) })} />
+            <Kpi loading={loading} Icon={ShieldAlert} label={t('ov.flaggedBatches')}
+              value={num(k?.batches.flagged ?? 0)} note={t('ov.flaggedNote')} />
+            <Kpi loading={loading} Icon={ScanLine} label={t('ov.scansToday')}
               value={num(k?.scansToday.total ?? 0)}
-              note={`Across ${num(k?.scansToday.sectors ?? 0)} sectors${k && k.scansToday.unknown > 0 ? ` · ${num(k.scansToday.unknown)} unknown` : ''}`} />
-            <Kpi loading={loading} Icon={FileSearch} label="Open investigations"
-              value={num(k?.openInvestigations ?? 0)} note="Pharmacist reports awaiting review" />
+              note={`${t('ov.acrossSectors', { n: num(k?.scansToday.sectors ?? 0) })}${k && k.scansToday.unknown > 0 ? ` · ${t('ov.unknown', { n: num(k.scansToday.unknown) })}` : ''}`} />
+            <Kpi loading={loading} Icon={FileSearch} label={t('ov.openInv')}
+              value={num(k?.openInvestigations ?? 0)} note={t('ov.openInvNote')} />
           </Carousel>
 
           <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
             <Card className="flex flex-col gap-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold">Scans over time</h2>
+                  <h2 className="text-lg font-semibold">{t('ov.scansOverTime')}</h2>
                   <p className="text-xs text-mute">
-                    {pts.length ? `${fmtDay(pts[0].date, false)} – ${fmtDay(pts[pts.length - 1].date)}` : 'Last 30 days'}
+                    {pts.length ? `${fmtDay(pts[0].date, false)} – ${fmtDay(pts[pts.length - 1].date)}` : t('common.last30')}
                   </p>
                 </div>
-                {data && <span className="text-sm font-semibold text-brand">{num(data.scansOverTime.total)} scans</span>}
+                {data && <span className="text-sm font-semibold text-brand">{t('ov.scansTotal', { n: num(data.scansOverTime.total) })}</span>}
               </div>
               {loading ? <Skeleton className="h-44 w-full" /> : <LineChart points={pts} />}
               {data && data.scansOverTime.total === 0 && (
-                <p className="text-sm text-mute">No scans recorded in this period yet.</p>
+                <p className="text-sm text-mute">{t('ov.noScansPeriod')}</p>
               )}
             </Card>
 
             <Card className="flex flex-col gap-4">
-              <h2 className="text-lg font-semibold">Verification results</h2>
-              <p className="-mt-3 text-xs text-mute">Last 30 days</p>
+              <h2 className="text-lg font-semibold">{t('ov.verification')}</h2>
+              <p className="-mt-3 text-xs text-mute">{t('common.last30')}</p>
               {loading || !data ? <Skeleton className="h-40 w-full" /> : (
                 <div className="flex items-center gap-6">
                   <Donut verdicts={data.verdicts} />
                   <ul className="flex flex-1 flex-col gap-3 text-sm">
-                    {(Object.keys(VERDICT_LABEL) as VerdictKey[])
+                    {VERDICT_KEYS
                       .filter((v) => ALWAYS.includes(v) || data.verdicts[v] > 0)
                       .map((v) => (
                         <li key={v} className="flex items-center justify-between gap-3">
                           <span className="flex items-center gap-2">
                             <i className="size-2.5 rounded-full" style={{ background: VERDICT_COLOR[v] }} aria-hidden />
-                            {VERDICT_LABEL[v]}
+                            {t(`status.${v}`)}
                           </span>
                           <b>{num(data.verdicts[v])}</b>
                         </li>
@@ -181,24 +184,24 @@ export default function Overview() {
 
           <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
             <Card className="flex flex-col gap-4">
-              <h2 className="text-lg font-semibold">Scans by drug category</h2>
-              <p className="-mt-3 text-xs text-mute">Today</p>
+              <h2 className="text-lg font-semibold">{t('ov.byCategory')}</h2>
+              <p className="-mt-3 text-xs text-mute">{t('common.today')}</p>
               {loading ? <Skeleton className="h-32 w-full" /> : data && data.categories.length > 0 ? (
                 <ul className="flex flex-col gap-4">
                   {data.categories.map((c) => (
                     <li key={c.category} className="flex flex-col gap-1.5 text-sm">
-                      <div className="flex justify-between"><span>{categoryLabel(c.category)}</span><b>{num(c.count)}</b></div>
+                      <div className="flex justify-between"><span>{catLabel(c.category)}</span><b>{num(c.count)}</b></div>
                       <div className="h-2 rounded-full bg-line">
                         <div className="h-2 rounded-full bg-brand" style={{ width: `${(c.count / catMax) * 100}%` }} />
                       </div>
                     </li>
                   ))}
                 </ul>
-              ) : <p className="text-sm text-mute">No scans recorded today.</p>}
+              ) : <p className="text-sm text-mute">{t('ov.noScansToday')}</p>}
             </Card>
 
             <Card className="flex flex-col gap-4">
-              <h2 className="text-lg font-semibold">Recent alerts</h2>
+              <h2 className="text-lg font-semibold">{t('ov.recentAlerts')}</h2>
               {loading ? <Skeleton className="h-32 w-full" /> : data && data.alerts.length > 0 ? (
                 <ul className="flex flex-col divide-y divide-line">
                   {data.alerts.map((a, i) => (
@@ -206,18 +209,18 @@ export default function Overview() {
                       <StatusChip kind={a.kind} />
                       <div className="min-w-0 flex-1 text-sm">
                         <div className="truncate">
-                          <span className="font-mono text-xs font-bold">{a.batchNo ?? 'Unknown batch'}</span>
+                          <span className="font-mono text-xs font-bold">{a.batchNo ?? t('ov.unknownBatch')}</span>
                           {a.drug && <span className="text-mute"> · {a.drug}</span>}
                         </div>
                         <div className="truncate text-xs text-mute">{a.detail} · {a.time}</div>
                       </div>
-                      <Link to="/batches" aria-label="Open batches" className="text-brand"><ArrowUpRight size={18} /></Link>
+                      <Link to="/batches" aria-label={t('ov.openBatches')} className="text-brand"><ArrowUpRight size={18} /></Link>
                     </li>
                   ))}
                 </ul>
               ) : (
                 <div className="flex items-center gap-2 text-sm text-mute">
-                  <ShieldCheck size={18} className="text-brand" aria-hidden /> No alerts in the last 7 days.
+                  <ShieldCheck size={18} className="text-brand" aria-hidden /> {t('ov.noAlerts')}
                 </div>
               )}
             </Card>

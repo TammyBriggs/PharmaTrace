@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/strings.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/language_selector.dart';
 import 'onboarding_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -14,6 +16,8 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // First screen a new user sees: the language can be chosen before anything else is read.
+              const Align(alignment: Alignment.centerRight, child: LanguageSelector()),
               const Spacer(),
               // Placeholder for the main welcome illustration (01-welcome.png)
               Image.asset(
@@ -24,7 +28,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 48),
               Text(
-                'Verify with Confidence',
+                context.tr('welcome.title'),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: context.colors.textPrimary,
@@ -33,7 +37,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Scan pharmaceuticals to view their complete, immutable ledger history.',
+                context.tr('welcome.body'),
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: context.colors.textSecondary,
                 ),
@@ -47,7 +51,7 @@ class WelcomeScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => const OnboardingScreen()),
                   );
                 },
-                child: const Text('Get Started'),
+                child: Text(context.tr('welcome.start')),
               ),
             ],
           ),
