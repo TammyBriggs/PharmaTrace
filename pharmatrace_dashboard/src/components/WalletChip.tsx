@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeftRight, ChevronDown, Network, TriangleAlert, Unplug, Wallet } from 'lucide-react';
 import { shortAddr, useWallet, explain } from '../lib/wallet';
 import { useAuth } from '../auth/AuthContext';
+import { useI18n } from '../i18n';
 
 // Shows wallet state. Only "Connect wallet" and the menu actions ever prompt MetaMask.
 // Once connected, the chip opens a small menu: switch account, switch network, disconnect.
 export default function WalletChip() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const w = useWallet();
   const [err, setErr] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -27,8 +29,8 @@ export default function WalletChip() {
   if (!w.hasProvider) {
     return (
       <a href="https://metamask.io/download" target="_blank" rel="noreferrer"
-        className={`${base} border-line text-mute`} title="Needed only for on-chain actions such as approving manufacturers">
-        <Wallet size={14} aria-hidden /> <span className="hidden sm:inline">MetaMask not detected</span><span className="sm:hidden">No wallet</span>
+        className={`${base} border-line text-mute`} title={t('wallet.onChainOnly')}>
+        <Wallet size={14} aria-hidden /> <span className="hidden sm:inline">{t('wallet.notDetected')}</span><span className="sm:hidden">{t('wallet.noWalletShort')}</span>
       </a>
     );
   }
@@ -37,7 +39,7 @@ export default function WalletChip() {
       <div className="flex flex-col items-end">
         <button type="button" className={`${base} border-brand text-brand hover:bg-brand-tint`}
           onClick={() => w.connect().then(() => setErr(null)).catch((e) => setErr(explain(e).message))}>
-          <Wallet size={14} aria-hidden /> Connect wallet
+          <Wallet size={14} aria-hidden /> {t('wallet.connect')}
         </button>
         {err && <span role="alert" className="absolute top-20 max-w-64 text-xs text-danger">{err}</span>}
       </div>
@@ -46,7 +48,7 @@ export default function WalletChip() {
 
   const wrongAccount = !!w.linkedWallet && w.account.toLowerCase() !== w.linkedWallet.toLowerCase();
   const wrongNetwork = w.expectedChainId !== null && w.chainId !== null && w.chainId !== w.expectedChainId;
-  const network = w.chainName ?? 'the expected network';
+  const network = w.chainName ?? t('wallet.expectedNetwork');
 
   async function run(action: () => Promise<void>, closeAfter = true) {
     setBusy(true); setErr(null);
@@ -63,33 +65,33 @@ export default function WalletChip() {
   return (
     <div ref={ref} className="relative">
       <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => { setOpen((o) => !o); setErr(null); }} className={chip}
-        title={wrongAccount ? `Registered wallet: ${w.linkedWallet}` : wrongNetwork ? `Switch MetaMask to ${network}` : 'Wallet options'}>
+        title={wrongAccount ? t('wallet.registered', { addr: w.linkedWallet ?? '' }) : wrongNetwork ? t('wallet.switchTo', { network }) : t('wallet.options')}>
         {wrongAccount || wrongNetwork
           ? <TriangleAlert size={14} aria-hidden />
           : <i className="size-2 rounded-full bg-brand" aria-hidden />}
-        {wrongAccount ? 'Wrong account' : wrongNetwork ? 'Wrong network' : null}
+        {wrongAccount ? t('wallet.wrongAccount') : wrongNetwork ? t('wallet.wrongNetwork') : null}
         {(wrongAccount || wrongNetwork) && ' · '}
         <span className="font-mono">{shortAddr(w.account)}</span>
         <ChevronDown size={14} aria-hidden />
       </button>
       {open && (
-        <div role="menu" aria-label="Wallet options" className="absolute right-0 z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-line bg-white py-1 shadow-card">
+        <div role="menu" aria-label={t('wallet.options')} className="absolute right-0 z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-line bg-white py-1 shadow-card">
           <div className="border-b border-line px-4 py-3 text-xs text-mute">
-            <p className="font-semibold text-ink">Connected wallet</p>
+            <p className="font-semibold text-ink">{t('wallet.connected')}</p>
             <p className="mt-1 break-all font-mono">{w.account}</p>
-            {wrongAccount && <p className="mt-2 text-[#b45309]">This is not your registered wallet ({shortAddr(w.linkedWallet!)}). Switch account to continue.</p>}
-            {!wrongAccount && wrongNetwork && <p className="mt-2 text-[#b45309]">MetaMask is on the wrong network. Switch to {network}.</p>}
+            {wrongAccount && <p className="mt-2 text-[#b45309]">{t('wallet.notYours', { addr: shortAddr(w.linkedWallet!) })}</p>}
+            {!wrongAccount && wrongNetwork && <p className="mt-2 text-[#b45309]">{t('wallet.wrongNetworkHelp', { network })}</p>}
           </div>
           <button type="button" role="menuitem" disabled={busy} className={item} onClick={() => run(w.switchAccount)}>
-            <ArrowLeftRight size={16} aria-hidden /> Switch account
+            <ArrowLeftRight size={16} aria-hidden /> {t('wallet.switchAccount')}
           </button>
           {wrongNetwork && (
             <button type="button" role="menuitem" disabled={busy} className={item} onClick={() => run(w.switchNetwork)}>
-              <Network size={16} aria-hidden /> Switch to {network}
+              <Network size={16} aria-hidden /> {t('wallet.switchNetwork', { network })}
             </button>
           )}
           <button type="button" role="menuitem" disabled={busy} className={item} onClick={() => run(w.disconnect)}>
-            <Unplug size={16} aria-hidden /> Disconnect wallet
+            <Unplug size={16} aria-hidden /> {t('wallet.disconnect')}
           </button>
           {err && <p role="alert" className="border-t border-line px-4 py-2 text-xs text-danger">{err}</p>}
         </div>

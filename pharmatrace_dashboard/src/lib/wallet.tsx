@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { BrowserProvider, Contract, type InterfaceAbi } from 'ethers';
 import { api } from './api';
 import { useAuth } from '../auth/AuthContext';
+import { translate } from '../i18n';
 
 interface Eip1193 {
   request(a: { method: string; params?: unknown[] | object }): Promise<unknown>;
@@ -35,12 +36,12 @@ export function explain(e: unknown): WalletError {
   if (e instanceof WalletError) return e;
   const err = e as { code?: unknown; info?: { error?: { code?: number } }; revert?: { name?: string }; shortMessage?: string; message?: string };
   if (err.code === 4001 || err.code === 'ACTION_REJECTED' || err.info?.error?.code === 4001) {
-    return new WalletError('REJECTED', 'You cancelled the request in MetaMask. Nothing was changed on-chain.');
+    return new WalletError('REJECTED', translate('wallet.err.rejected'));
   }
   if (err.revert?.name && REVERTS[err.revert.name]) return new WalletError('REVERT', REVERTS[err.revert.name]);
-  const msg = err.shortMessage ?? err.message ?? 'The transaction failed.';
+  const msg = err.shortMessage ?? err.message ?? translate('wallet.err.failed');
   if (/nonce/i.test(msg)) {
-    return new WalletError('CHAIN', 'MetaMask’s transaction count is out of sync with the network. On a local chain this happens after restarting the Hardhat node: in MetaMask go to Settings → Advanced → Clear activity tab data, then try again. On Sepolia, wait for your pending transaction to finish and try again.');
+    return new WalletError('CHAIN', translate('wallet.err.nonce'));
   }
   return new WalletError('CHAIN', msg.length > 200 ? `${msg.slice(0, 200)}…` : msg);
 }
@@ -53,7 +54,7 @@ async function switchToChain(eth: Eip1193, cfg: ChainConfig) {
     await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hex }] });
   } catch (e) {
     if ((e as { code?: number }).code !== 4902) throw e;       // 4902: network not added yet
-    if (!cfg.rpcUrl) throw new Error(`Add the ${cfg.chainName ?? 'network'} to MetaMask by hand (chain ID ${cfg.chainId}), then try again.`);
+    if (!cfg.rpcUrl) throw new Error(translate('wallet.err.addNetwork', { network: cfg.chainName ?? translate('wallet.err.network'), id: cfg.chainId }));
     await eth.request({
       method: 'wallet_addEthereumChain',
       params: [{ chainId: hex, chainName: cfg.chainName ?? 'Hardhat Local', rpcUrls: [cfg.rpcUrl], nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 } }],
@@ -118,18 +119,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const switchNetwork = useCallback(async () => {
     const eth = window.ethereum;
-    if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
+    if (!eth) throw new WalletError('NO_WALLET', translate('wallet.err.noWallet'));
     try {
       let cfg: ChainConfig;
       try { cfg = await loadConfig(); }
-      catch (e) { throw new WalletError('SETUP', `Blockchain not ready: ${(e as Error).message}`); }
+      catch (e) { throw new WalletError('SETUP', translate('wallet.err.notReady', { detail: (e as Error).message })); }
       await switchToChain(eth, cfg);
     } catch (e) { throw explain(e); }
   }, [loadConfig]);
 
   const connect = useCallback(async () => {
     const eth = window.ethereum;
-    if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
+    if (!eth) throw new WalletError('NO_WALLET', translate('wallet.err.noWallet'));
     try {
       let a = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
       // If this site was already permitted with a different account (e.g. the super admin's), MetaMask
@@ -145,7 +146,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const switchAccount = useCallback(async () => {
     const eth = window.ethereum;
-    if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
+    if (!eth) throw new WalletError('NO_WALLET', translate('wallet.err.noWallet'));
     try {
       await eth.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
       const a = (await eth.request({ method: 'eth_accounts' })) as string[];
@@ -159,19 +160,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       await eth.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] });
     } catch {
-      throw new WalletError('SETUP', 'MetaMask did not let this site disconnect. Open MetaMask, choose Connected sites, and disconnect it there.');
+      throw new WalletError('SETUP', translate('wallet.err.disconnect'));
     }
     setAccounts([]);
   }, []);
 
   const ensureReady = useCallback(async () => {
     const eth = window.ethereum;
-    if (!eth) throw new WalletError('NO_WALLET', 'MetaMask was not detected in this browser. Install it from metamask.io, then reload this page.');
-    if (!linked) throw new WalletError('NO_LINKED_WALLET', 'Your account has no wallet linked, so it cannot sign on-chain actions. Ask an administrator to add one.');
+    if (!eth) throw new WalletError('NO_WALLET', translate('wallet.err.noWallet'));
+    if (!linked) throw new WalletError('NO_LINKED_WALLET', translate('wallet.err.noLinked'));
     try {
       let cfg: ChainConfig;
       try { cfg = await loadConfig(); }
-      catch (e) { throw new WalletError('SETUP', `Blockchain not ready: ${(e as Error).message}`); }   // server/chain setup, not a wallet problem
+      catch (e) { throw new WalletError('SETUP', translate('wallet.err.notReady', { detail: (e as Error).message })); }   // server/chain setup, not a wallet problem
       let accs = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
       setAccounts(accs);
 
@@ -181,7 +182,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       const match = accs.find((a) => a.toLowerCase() === linked.toLowerCase());
       if (!match) {
-        throw new WalletError('WRONG_ACCOUNT', `Switch MetaMask to your registered wallet ${shortAddr(linked)}, then try again.`);
+        throw new WalletError('WRONG_ACCOUNT', translate('wallet.err.wrongAccount', { addr: shortAddr(linked) }));
       }
       const signer = await new BrowserProvider(eth).getSigner(match);
       return new Contract(cfg.address, cfg.abi, signer);

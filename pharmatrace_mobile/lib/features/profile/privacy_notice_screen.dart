@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/auth_manager.dart';
+import '../../core/strings.dart';
 import '../../core/theme.dart';
 
 /// Plain-language summary of what the app collects and why.
@@ -39,31 +40,29 @@ class PrivacyNoticeScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy notice')),
+      appBar: AppBar(title: Text(context.tr('pn.title'))),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          section('When you scan a medicine', [
-            'The code you scan is sent to PharmaTrace to check it against the register of approved batches.',
-            'The server keeps the result (for example authentic or flagged), the batch and pack checked, and the time.',
-            'If you are signed in as a pharmacist, the scan is also linked to your account and your sector. Patients who scan without signing in are not identified.',
-            'The camera is only used to read QR codes. Photos of what the camera sees are not stored.',
+          section(context.tr('pn.scan.title'), [
+            context.tr('pn.scan.1'),
+            context.tr('pn.scan.2'),
+            context.tr('pn.scan.3'),
+            context.tr('pn.scan.4'),
           ]),
           if (isPharmacist)
-            section('When you report a product', [
-            'A report shares the batch number, your sector, your notes and the photo you choose to add.',
-            'Reports are seen by the Rwanda FDA review team. Do not include patient names or medical details.',
-            'A report does not confirm that a product is counterfeit. It asks the team to review it.',
-          ]),
+            section(context.tr('pn.report.title'), [
+              context.tr('pn.report.1'),
+              context.tr('pn.report.2'),
+              context.tr('pn.report.3'),
+            ]),
           if (isPharmacist)
-            section('When you record a sale', [
-            'Marking a pack as dispensed records the pack, the time and your account. It is used to spot copies of a pack that was already sold.',
-          ]),
-          section('On your phone', [
-            'Your scan history, display settings and profile are saved on this device. Clearing the scan history in the History tab removes it from the phone.',
-            isPharmacist
-                ? 'Gallery access is only used when you choose a profile picture or a report photo.'
-                : 'Gallery access is only used when you choose a profile picture.',
+            section(context.tr('pn.sale.title'), [
+              context.tr('pn.sale.1'),
+            ]),
+          section(context.tr('pn.phone.title'), [
+            context.tr('pn.phone.1'),
+            context.tr(isPharmacist ? 'pn.phone.2.pharmacist' : 'pn.phone.2.patient'),
           ]),
         ],
       ),

@@ -33,9 +33,9 @@ The system has four parts that work together end to end.
 
 **Backend:** JWT login with role checks; GS1 Digital Link parsing with a check-digit test; a unique serial number for every pack; scan verification that combines the database and the contract (worst result wins); sale recording (a pack sold twice is flagged as a duplicate); a hash-chained audit log; scan analytics by sector; a sector risk map; flag-report review; notifications; global search; regulator-issued logins for pharmacists and manufacturers with a forced first-time password change; password reset by emailed code; server-side check that a pharmacist's sector is one of the 15 in Gasabo; per-route rate limits on sign-in, password reset and scans.
 
-**Web dashboard:** overview, manufacturers (add, approve on-chain, detail page), batches (list, detail, provenance timeline, approve, flag, resolve, revoke, reinstate), QR label printing, flag reports, scan analytics, a risk map of scan results by sector, pharmacist management (create, reset password, deactivate), manufacturer sign-in details, audit log with chain verification, notifications, global search, and a separate overview for manufacturer accounts.
+**Web dashboard:** overview, manufacturers (add, approve on-chain, detail page), batches (list, detail, provenance timeline, approve, flag, resolve, revoke, reinstate), QR label printing, flag reports, scan analytics, a risk map of scan results by sector, pharmacist management (create, reset password, deactivate), manufacturer sign-in details, audit log with chain verification, notifications, global search, and a separate overview for manufacturer accounts; English and Kinyarwanda with a language switch on the sign-in pages and in the account menu (sign-in, navigation, verdict labels, password screens, both overviews and the Connect wallet button, menu and messages are translated; other pages fall back to English).
 
-**Mobile app:** QR scanning and manual entry by batch number (GTIN and pack serial optional); verification result with the plain-language reason (a pack that was already sold is shown calmly to patients as a genuine product, and firmly to pharmacists as "do not dispense again"); batch history timeline; "mark as dispensed" and "report product" for pharmacists; scan history saved on the phone; light and dark themes; Gasabo District sector selection for pharmacists; forced password change after the first sign-in, change password and forgot password.
+**Mobile app:** QR scanning and manual entry by batch number (GTIN and pack serial optional); verification result with the plain-language reason (a pack that was already sold is shown calmly to patients as a genuine product, and firmly to pharmacists as "do not dispense again"); batch history timeline; "mark as dispensed" and "report product" for pharmacists; scan history saved on the phone; light and dark themes; Gasabo District sector selection for pharmacists; forced password change after the first sign-in, change password and forgot password; English and Kinyarwanda with a language switch in Settings (and on the first screens), English by default, covering every screen including report product and the privacy notice except the batch history timeline.
 
 ### Scope status
 
@@ -52,6 +52,7 @@ The system has four parts that work together end to end.
 | Risk map by sector | Complete (no exact locations are stored) |
 | Deployment to a public test network (Sepolia) | Complete (contract `0x5963d25e359dA56095357c7BCFB382999504471D`; see "Deploying to Sepolia") |
 | Hosted dashboard and server | Complete (dashboard on Vercel, server on Render in Frankfurt, database on Neon in Frankfurt) |
+| English and Kinyarwanda | Mobile app: all screens except the batch history timeline. Web dashboard: sign-in, navigation, password screens, both overviews and the wallet button; other pages are in English. The Kinyarwanda text is a first draft and needs review by a native speaker |
 
 ---
 
@@ -259,10 +260,11 @@ PharmaTrace/
 ├── pharmatrace_dashboard/src/
 │   ├── pages/                           # One file per screen
 │   ├── components/                      # Reusable parts (shell, modal, notifications, search)
+│   ├── i18n/                            # English and Kinyarwanda text and the language switch
 │   ├── lib/                             # API client, wallet, types, formatting
 │   └── auth/                            # Login state and role guard
 ├── pharmatrace_mobile/lib/
-│   ├── core/                            # Theme, sectors, config, shared widgets
+│   ├── core/                            # Theme, sectors, config, language (strings.dart), shared widgets
 │   ├── data/                            # Models and API service
 │   └── features/                        # scan, verification, history, profile, auth, onboarding
 └── docs/

@@ -17,6 +17,15 @@ function initialLang(): Lang {
 }
 
 type Vars = Record<string, string | number>;
+
+function render(lang: Lang, key: Key, vars?: Vars) {
+  const text = DICT[lang][key] ?? en[key] ?? String(key);   // missing Kinyarwanda falls back to English
+  return vars ? text.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? `{${k}}`)) : text;
+}
+
+/** For plain code that is not a React component (wallet error messages). Uses the language chosen right now. */
+export const translate = (key: Key, vars?: Vars) => render(current, key, vars);
+
 interface I18n { lang: Lang; setLang: (l: Lang) => void; t: (key: Key, vars?: Vars) => string }
 const Ctx = createContext<I18n | null>(null);
 
@@ -33,10 +42,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<I18n>(() => ({
     lang, setLang,
-    t: (key, vars) => {
-      const text = DICT[lang][key] ?? en[key] ?? String(key);   // missing Kinyarwanda falls back to English
-      return vars ? text.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? `{${k}}`)) : text;
-    },
+    t: (key, vars) => render(lang, key, vars),
   }), [lang, setLang]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/auth_manager.dart';
 import '../../core/sectors.dart';
+import '../../core/strings.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/sector_dropdown.dart';
 import '../../data/services/api_service.dart';
@@ -59,21 +60,21 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
       builder: (sheetContext) => SafeArea(
         child: Wrap(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Text(
-                'Add packaging photo',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                sheetContext.tr('rp.addPhoto'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
             ListTile(
               leading: Icon(Icons.camera_alt_outlined, color: sheetContext.colors.accent),
-              title: const Text('Take a photo'),
+              title: Text(sheetContext.tr('rp.take')),
               onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
             ),
             ListTile(
               leading: Icon(Icons.photo_library_outlined, color: sheetContext.colors.accent),
-              title: const Text('Choose from gallery'),
+              title: Text(sheetContext.tr('rp.gallery')),
               onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
             ),
           ],
@@ -91,7 +92,7 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      _toast('Unable to select the photo. Please try again.');
+      _toast(context.tr('rp.photoError'));
     }
   }
 
@@ -101,15 +102,15 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
     final notes = _notesController.text.trim();
 
     if (batchId.isEmpty) {
-      _toast('Please enter the batch number.');
+      _toast(context.tr('rp.needBatch'));
       return;
     }
     if (notes.isEmpty) {
-      _toast('Please provide details about the report.');
+      _toast(context.tr('rp.needNotes'));
       return;
     }
     if (_sector == null) {
-      _toast('Please choose the pharmacy sector.');
+      _toast(context.tr('rp.needSector'));
       return;
     }
 
@@ -119,12 +120,12 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
       await ApiService.submitReport(batchId, _sector!, notes, _imagePath);
 
       if (!mounted) return;
-      _toast('Report submitted successfully.');
+      _toast(context.tr('rp.sent'));
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      final message = e is ApiException ? e.message : 'Something went wrong. Please try again.';
-      _toast('Failed to submit report: $message');
+      final message = e is ApiException ? e.message : context.tr('rp.wrong');
+      _toast(context.tr('rp.failed', {'message': message}));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -155,9 +156,9 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Report suspicious drug',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+        title: Text(
+          context.tr('profile.reportDrug'),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         centerTitle: false,
       ),
@@ -167,17 +168,17 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'PHARMACIST REPORT • SIGNED IN',
+              context.tr('rp.eyebrow'),
               style: TextStyle(color: c.accent, fontWeight: FontWeight.bold, fontSize: 12),
             ),
             const SizedBox(height: 8),
             Text(
-              'Help flag a product that needs review.',
+              context.tr('rp.intro'),
               style: TextStyle(color: c.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 24),
 
-            _label('Packaging photo'),
+            _label(context.tr('rp.photo')),
 
             // Tap this container to take a photo or choose one
             // from the device gallery.
@@ -204,11 +205,11 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Add packaging photo',
+                                context.tr('rp.addPhoto'),
                                 style: TextStyle(color: c.accent, fontWeight: FontWeight.bold),
                               ),
                               Text(
-                                'Show the QR code and batch label.',
+                                context.tr('rp.photoHint'),
                                 style: TextStyle(color: c.textSecondary, fontSize: 12),
                               ),
                             ],
@@ -232,10 +233,10 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
                           height: 200,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return const SizedBox(
+                            return SizedBox(
                               height: 100,
                               child: Center(
-                                child: Text('Unable to display this image. Tap to select another.'),
+                                child: Text(context.tr('rp.imageError')),
                               ),
                             );
                           },
@@ -243,7 +244,7 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Tap to replace the selected photo.',
+                        context.tr('rp.replace'),
                         style: TextStyle(color: c.textSecondary, fontSize: 12),
                       ),
                     ],
@@ -253,22 +254,22 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
             ),
             const SizedBox(height: 24),
 
-            _label('Pharmacy location'),
+            _label(context.tr('rp.location')),
             SectorDropdown(
               value: _sector,
-              label: 'Sector',
+              label: context.tr('rp.sector'),
               enabled: !_isSubmitting,
               onChanged: (value) => setState(() => _sector = value),
             ),
             _hint(
               context,
               _sector == null
-                  ? 'Choose the sector where the pharmacy is.'
-                  : '${districtOfSector(_sector)} District, Kigali',
+                  ? context.tr('rp.sectorHint')
+                  : context.tr('profile.district', {'district': districtOfSector(_sector) ?? ''}),
             ),
             const SizedBox(height: 24),
 
-            _label('Batch number'),
+            _label(context.tr('rp.batch')),
             TextField(
               controller: _batchController,
               textCapitalization: TextCapitalization.characters,
@@ -278,24 +279,23 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
-            _hint(context, 'Copy the batch number exactly as printed on the box.'),
+            _hint(context, context.tr('rp.batchHint')),
             const SizedBox(height: 24),
 
-            _label('Notes'),
+            _label(context.tr('rp.notes')),
             TextField(
               controller: _notesController,
               maxLines: 3,
               decoration: InputDecoration(
-                hintText: 'Batch flagged during scan.\nPackaging held for review.',
+                hintText: context.tr('rp.notesPlaceholder'),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
-            _hint(context, 'Do not include patient names or medical details.'),
+            _hint(context, context.tr('rp.notesHint')),
             const SizedBox(height: 32),
 
             Text(
-              'Submitting shares these details with the review team. '
-              'It does not confirm a counterfeit result.',
+              context.tr('rp.disclaimer'),
               style: TextStyle(color: c.textSecondary, fontSize: 12, height: 1.4),
             ),
             const SizedBox(height: 16),
@@ -311,7 +311,7 @@ class _ReportProductScreenState extends State<ReportProductScreen> {
                         width: 20,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
-                    : const Text('Submit report'),
+                    : Text(context.tr('rp.submit')),
               ),
             ),
           ],
