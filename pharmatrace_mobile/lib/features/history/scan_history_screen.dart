@@ -80,6 +80,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<BatchVerdict?>(
                       isExpanded: true,
+                      itemHeight: null, // rows grow with the text, so long Kinyarwanda labels wrap instead of overflowing
                       value: _selectedFilter,
                       icon: Icon(Icons.arrow_drop_down, color: c.accent),
                       items: [
@@ -100,9 +101,14 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                             children: [
                               Icon(Icons.filter_list, color: c.accent, size: 20),
                               const SizedBox(width: 8),
-                              Text(
-                                context.tr('history.count', {'filter': _filterName(context, verdict), 'n': filteredScans.length}),
-                                style: TextStyle(fontWeight: FontWeight.w500, color: c.textPrimary),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Text(
+                                    context.tr('history.count', {'filter': _filterName(context, verdict), 'n': filteredScans.length}),
+                                    style: TextStyle(fontWeight: FontWeight.w500, color: c.textPrimary),
+                                  ),
+                                ),
                               ),
                             ],
                           );

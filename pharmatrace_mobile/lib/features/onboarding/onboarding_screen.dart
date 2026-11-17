@@ -55,18 +55,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   setState(() => _currentPage = value);
                 },
                 itemCount: _onboardingData.length,
-                itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.all(40.0),
+                // Each page scrolls if the screen is too short for it, and the picture shrinks first,
+                // so nothing overflows on small phones or with large text.
+                itemBuilder: (context, index) => LayoutBuilder(
+                  builder: (context, constraints) {
+                    final imageHeight = (constraints.maxHeight * 0.3).clamp(120.0, 250.0).toDouble();
+                    final minHeight = constraints.maxHeight > 32 ? constraints.maxHeight - 32 : 0.0;
+                    return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: minHeight),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Image.asset(
                         _onboardingData[index]["image"]!,
-                        height: 250,
+                        height: imageHeight,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) =>
                             Container(
-                          height: 250,
+                          height: imageHeight,
                           decoration: BoxDecoration(
                             color: context.colors.neutralBg,
                             shape: BoxShape.circle,
@@ -80,7 +88,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 32),
                       Text(
                         context.tr(_onboardingData[index]["title"]!),
                         style:
@@ -99,6 +107,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ],
                   ),
+                  ),
+                    );
+                  },
                 ),
               ),
             ),

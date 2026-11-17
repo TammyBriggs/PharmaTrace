@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../core/theme_controller.dart';
 import '../../core/auth_manager.dart';
 import '../../core/sectors.dart';
+import '../../core/language_controller.dart';
 import '../../core/strings.dart';
 import '../../core/widgets/language_selector.dart';
 import '../../core/widgets/sector_dropdown.dart';
@@ -75,11 +76,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        // The Kinyarwanda title is longer than one line, so the bar gets taller and the title wraps
+        // rather than being cut off with "...".
+        toolbarHeight: LanguageController().isKinyarwanda ? 80 : null,
         title: Text(
           context.tr('profile.title'),
-          style: const TextStyle(
+          maxLines: 2,
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 24,
+            fontSize: LanguageController().isKinyarwanda ? 22 : 24,
+            height: 1.15,
           ),
         ),
         centerTitle: false,
