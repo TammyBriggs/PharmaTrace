@@ -11,7 +11,7 @@ PharmaTrace is an anti-counterfeit medicine verification system for Rwanda. Manu
 | **Technical report (PDF)** | [`docs/PharmaTrace_Technical_Report.pdf`](docs/PharmaTrace_Technical_Report.pdf) |
 | **Figma** | https://www.figma.com/design/i8k7qcRAaYYRulinorFO43/Untitled?node-id=3-1274 |
 | **Live dashboard** | https://pharma-trace-gamma.vercel.app (Vercel) |
-| **Live API** | https://pharmatrace-v2.onrender.com (Render, Frankfurt) |
+| **Live API** | [https://pharmatrace-v2.onrender.com](https://pharmatrace-v2.onrender.com/api/health) (Render, Frankfurt) |
 | **Android app (APK)** | [Download the latest release](https://github.com/TammyBriggs/PharmaTrace/releases/latest) |
 | **Smart contract (Sepolia test network)** | `0x5963d25e359dA56095357c7BCFB382999504471D`. [View it on Etherscan](https://sepolia.etherscan.io/address/0x5963d25e359dA56095357c7BCFB382999504471D): the *Transactions* tab lists every call made to the contract (manufacturer registrations, batch submissions, approvals, flags) and the *Events* tab shows what each one recorded. |
 
